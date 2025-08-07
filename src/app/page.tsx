@@ -1,0 +1,1157 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
+import {
+    User,
+    GraduationCap,
+    BookOpen,
+    Target,
+    TrendingUp,
+    Clock,
+    Star,
+    CheckCircle,
+    AlertCircle,
+    Plus,
+    School,
+    FileText,
+    ArrowLeft
+} from 'lucide-react'
+
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+
+import { User as UserType, StudentProfile, DashboardData, OnboardingData, AuthFormData } from '@/types'
+import {
+    formatGPA,
+    calculateProgress,
+    getAcademicYearLabel,
+    getTimelineLabel,
+    generateTransferPathways,
+    generateCourseRecommendations
+} from '@/lib/utils'
+
+export default function TransferAI() {
+    const [user, setUser] = useState<UserType | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [currentView, setCurrentView] = useState<'login' | 'signup' | 'onboarding' | 'dashboard' | 'docs'>('login')
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+    const [error, setError] = useState('')
+
+    useEffect(() => {
+        checkSession()
+    }, [])
+
+    const checkSession = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+                // Convert Supabase User to our UserType
+                const userData: UserType = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    user_metadata: {
+                        firstName: session.user.user_metadata?.firstName || '',
+                        lastName: session.user.user_metadata?.lastName || '',
+                        currentCollege: session.user.user_metadata?.currentCollege || '',
+                        academicYear: session.user.user_metadata?.academicYear || ''
+                    }
+                }
+                setUser(userData)
+                await loadDashboardData(session.access_token)
+            }
+        } catch (error) {
+            console.error('Session check error:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const loadDashboardData = async (accessToken: string) => {
+        try {
+            // Mock dashboard data for demo
+            const mockProfile: StudentProfile = {
+                userId: user?.id || '',
+                email: user?.email || '',
+                firstName: user?.user_metadata?.firstName || 'Student',
+                lastName: user?.user_metadata?.lastName || '',
+                currentCollege: user?.user_metadata?.currentCollege || 'Community College',
+                academicYear: user?.user_metadata?.academicYear || 'sophomore',
+                onboardingCompleted: true,
+                intendedMajor: 'Computer Science',
+                targetUniversities: ['UCLA', 'UC Berkeley', 'USC'],
+                preferredTransferTimeline: '2-year',
+                currentGPA: 3.45,
+                completedCredits: 24,
+                transferGoals: ['Maximize transfer credits', 'Maintain high GPA'],
+                careerInterests: ['Technology/Software', 'Engineering'],
+                completedCourses: [],
+                currentCourses: [],
+                plannedCourses: []
+            }
+
+            const mockData: DashboardData = {
+                profile: mockProfile,
+                analysis: {},
+                courseRecommendations: generateCourseRecommendations(mockProfile),
+                progressMetrics: {
+                    creditsCompleted: 24,
+                    targetCredits: 60,
+                    gpa: 3.45,
+                    coursesInProgress: 4,
+                    transferPathwaysAnalyzed: 3
+                },
+                transferPathways: generateTransferPathways(mockProfile)
+            }
+
+            setDashboardData(mockData)
+            setCurrentView(mockData.profile.onboardingCompleted ? 'dashboard' : 'onboarding')
+        } catch (error) {
+            console.error('Dashboard load error:', error)
+        }
+    }
+
+    const handleSignup = async (formData: AuthFormData) => {
+        try {
+            setLoading(true)
+
+            // Mock signup for demo
+            const mockUser: UserType = {
+                id: 'mock-user-id',
+                email: formData.email,
+                user_metadata: {
+                    firstName: formData.firstName || '',
+                    lastName: formData.lastName || '',
+                    currentCollege: formData.currentCollege || '',
+                    academicYear: formData.academicYear || 'freshman'
+                }
+            }
+
+            toast.success('Account created successfully!')
+            setUser(mockUser)
+            setCurrentView('onboarding')
+        } catch (error) {
+            console.error('Signup error:', error)
+            setError('Network error during signup')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleLogin = async (email: string, password: string) => {
+        try {
+            setLoading(true)
+
+            // Mock login for demo
+            const mockUser: UserType = {
+                id: 'mock-user-id',
+                email: email,
+                user_metadata: {
+                    firstName: 'Demo',
+                    lastName: 'Student',
+                    currentCollege: 'Santa Monica College',
+                    academicYear: 'sophomore'
+                }
+            }
+
+            setUser(mockUser)
+            await loadDashboardData('mock-token')
+        } catch (error) {
+            console.error('Login error:', error)
+            setError('Login failed')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleCompleteOnboarding = async (onboardingData: OnboardingData) => {
+        try {
+            setLoading(true)
+
+            toast.success('Onboarding completed!')
+            await loadDashboardData('mock-token')
+        } catch (error) {
+            console.error('Onboarding error:', error)
+            setError('Failed to complete onboarding')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut()
+        setUser(null)
+        setDashboardData(null)
+        setCurrentView('login')
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading Transfer.ai...</p>
+                </div>
+            </div>
+        )
+    }
+
+    // Documentation view
+    if (currentView === 'docs') {
+        return (
+            <div>
+                <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentView(user ? 'dashboard' : 'login')}
+                                className="flex items-center"
+                            >
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Back to App
+                            </Button>
+                            <div className="flex items-center">
+                                <GraduationCap className="h-8 w-8 text-blue-600 mr-2" />
+                                <span className="text-2xl font-bold text-blue-600">Transfer.ai</span>
+                                <Badge variant="outline" className="ml-3">Documentation</Badge>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <UserJourneyDocs />
+            </div>
+        )
+    }
+
+    if (!user) {
+        return <AuthView
+            currentView={currentView}
+            setCurrentView={setCurrentView}
+            onSignup={handleSignup}
+            onLogin={handleLogin}
+            error={error}
+            setError={setError}
+        />
+    }
+
+    if (currentView === 'onboarding') {
+        return <OnboardingView
+            user={user}
+            onComplete={handleCompleteOnboarding}
+            error={error}
+        />
+    }
+
+    return <DashboardView
+        user={user}
+        dashboardData={dashboardData!}
+        onLogout={handleLogout}
+        refreshDashboard={() => loadDashboardData('')}
+        setCurrentView={setCurrentView}
+    />
+}
+
+function AuthView({ currentView, setCurrentView, onSignup, onLogin, error, setError }: any) {
+    const [formData, setFormData] = useState<AuthFormData>({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        currentCollege: '',
+        academicYear: ''
+    })
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        setError('')
+
+        if (currentView === 'signup') {
+            onSignup(formData)
+        } else {
+            onLogin(formData.email, formData.password)
+        }
+    }
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+            <div className="w-full max-w-md space-y-4">
+                {/* Documentation Access */}
+                <div className="text-center">
+                    <Button
+                        variant="outline"
+                        onClick={() => setCurrentView('docs')}
+                        className="mb-4"
+                    >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Documentation & User Journey
+                    </Button>
+                </div>
+
+                <Card>
+                    <CardHeader className="text-center">
+                        <div className="flex items-center justify-center mb-4">
+                            <GraduationCap className="h-8 w-8 text-blue-600 mr-2" />
+                            <span className="text-2xl font-bold text-blue-600">Transfer.ai</span>
+                        </div>
+                        <CardTitle>
+                            {currentView === 'signup' ? 'Create Your Account' : 'Welcome Back'}
+                        </CardTitle>
+                        <p className="text-gray-600">
+                            {currentView === 'signup'
+                                ? 'Start your journey to your dream university'
+                                : 'Continue your transfer journey'
+                            }
+                        </p>
+                    </CardHeader>
+                    <CardContent>
+                        {error && (
+                            <Alert className="mb-4">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {currentView === 'signup' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="firstName">First Name</Label>
+                                            <Input
+                                                id="firstName"
+                                                value={formData.firstName}
+                                                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="lastName">Last Name</Label>
+                                            <Input
+                                                id="lastName"
+                                                value={formData.lastName}
+                                                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="currentCollege">Current College</Label>
+                                        <Input
+                                            id="currentCollege"
+                                            placeholder="e.g., Santa Monica College"
+                                            value={formData.currentCollege}
+                                            onChange={(e) => setFormData({ ...formData, currentCollege: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="academicYear">Academic Year</Label>
+                                        <Select onValueChange={(value) => setFormData({ ...formData, academicYear: value })}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select your current year" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="freshman">Freshman</SelectItem>
+                                                <SelectItem value="sophomore">Sophomore</SelectItem>
+                                                <SelectItem value="returning">Returning Student</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </>
+                            )}
+
+                            <div>
+                                <Label htmlFor="email">Email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <Button type="submit" className="w-full">
+                                {currentView === 'signup' ? 'Create Account' : 'Sign In'}
+                            </Button>
+                        </form>
+
+                        <div className="mt-4 text-center">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setCurrentView(currentView === 'signup' ? 'login' : 'signup')
+                                    setError('')
+                                }}
+                                className="text-blue-600 hover:underline"
+                            >
+                                {currentView === 'signup'
+                                    ? 'Already have an account? Sign in'
+                                    : "Don't have an account? Sign up"
+                                }
+                            </button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+function OnboardingView({ user, onComplete, error }: any) {
+    const [step, setStep] = useState(1)
+    const [onboardingData, setOnboardingData] = useState<OnboardingData>({
+        intendedMajor: '',
+        targetUniversities: [],
+        preferredTransferTimeline: '',
+        currentGPA: 0,
+        completedCredits: 0,
+        transferGoals: [],
+        careerInterests: []
+    })
+
+    const handleNext = () => {
+        if (step < 4) setStep(step + 1)
+    }
+
+    const handleBack = () => {
+        if (step > 1) setStep(step - 1)
+    }
+
+    const handleComplete = () => {
+        onComplete(onboardingData)
+    }
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+            <div className="max-w-2xl mx-auto">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                        Welcome to Transfer.ai, {user.user_metadata.firstName}!
+                    </h1>
+                    <p className="text-gray-600">Let's personalize your transfer journey</p>
+                    <Progress value={(step / 4) * 100} className="mt-4" />
+                </div>
+
+                <Card>
+                    <CardContent className="p-6">
+                        {error && (
+                            <Alert className="mb-4">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        {step === 1 && (
+                            <div className="space-y-6">
+                                <h2 className="text-2xl font-semibold">Academic Goals</h2>
+
+                                <div>
+                                    <Label htmlFor="intendedMajor">Intended Major</Label>
+                                    <Input
+                                        id="intendedMajor"
+                                        placeholder="e.g., Computer Science, Business, Psychology"
+                                        value={onboardingData.intendedMajor}
+                                        onChange={(e) => setOnboardingData({ ...onboardingData, intendedMajor: e.target.value })}
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label>Target Universities (select up to 5)</Label>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        {['UCLA', 'UC Berkeley', 'USC', 'CSUF', 'CSUN', 'SDSU'].map(uni => (
+                                            <label key={uni} className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={onboardingData.targetUniversities.includes(uni)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setOnboardingData({
+                                                                ...onboardingData,
+                                                                targetUniversities: [...onboardingData.targetUniversities, uni]
+                                                            })
+                                                        } else {
+                                                            setOnboardingData({
+                                                                ...onboardingData,
+                                                                targetUniversities: onboardingData.targetUniversities.filter(u => u !== uni)
+                                                            })
+                                                        }
+                                                    }}
+                                                />
+                                                <span>{uni}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <Label>Preferred Transfer Timeline</Label>
+                                    <Select onValueChange={(value) => setOnboardingData({ ...onboardingData, preferredTransferTimeline: value })}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="When do you want to transfer?" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1-year">1 Year (Next Fall)</SelectItem>
+                                            <SelectItem value="2-year">2 Years</SelectItem>
+                                            <SelectItem value="flexible">Flexible Timeline</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 2 && (
+                            <div className="space-y-6">
+                                <h2 className="text-2xl font-semibold">Academic Standing</h2>
+
+                                <div>
+                                    <Label htmlFor="currentGPA">Current GPA</Label>
+                                    <Input
+                                        id="currentGPA"
+                                        type="number"
+                                        step="0.01"
+                                        max="4.0"
+                                        placeholder="e.g., 3.25"
+                                        value={onboardingData.currentGPA || ''}
+                                        onChange={(e) => setOnboardingData({ ...onboardingData, currentGPA: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="completedCredits">Completed Credits</Label>
+                                    <Input
+                                        id="completedCredits"
+                                        type="number"
+                                        placeholder="e.g., 24"
+                                        value={onboardingData.completedCredits || ''}
+                                        onChange={(e) => setOnboardingData({ ...onboardingData, completedCredits: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 3 && (
+                            <div className="space-y-6">
+                                <h2 className="text-2xl font-semibold">Transfer Goals</h2>
+
+                                <div>
+                                    <Label>What are your main transfer goals? (Check all that apply)</Label>
+                                    <div className="grid grid-cols-1 gap-2 mt-2">
+                                        {[
+                                            'Maximize transfer credits',
+                                            'Maintain high GPA',
+                                            'Complete prerequisites efficiently',
+                                            'Get guaranteed admission',
+                                            'Minimize time to degree',
+                                            'Explore different majors'
+                                        ].map(goal => (
+                                            <label key={goal} className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={onboardingData.transferGoals.includes(goal)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setOnboardingData({
+                                                                ...onboardingData,
+                                                                transferGoals: [...onboardingData.transferGoals, goal]
+                                                            })
+                                                        } else {
+                                                            setOnboardingData({
+                                                                ...onboardingData,
+                                                                transferGoals: onboardingData.transferGoals.filter(g => g !== goal)
+                                                            })
+                                                        }
+                                                    }}
+                                                />
+                                                <span>{goal}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 4 && (
+                            <div className="space-y-6">
+                                <h2 className="text-2xl font-semibold">Career Interests</h2>
+
+                                <div>
+                                    <Label>What career fields interest you? (Check all that apply)</Label>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        {[
+                                            'Technology/Software',
+                                            'Healthcare/Medicine',
+                                            'Business/Finance',
+                                            'Education',
+                                            'Engineering',
+                                            'Arts/Creative',
+                                            'Law/Government',
+                                            'Science/Research'
+                                        ].map(career => (
+                                            <label key={career} className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={onboardingData.careerInterests.includes(career)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setOnboardingData({
+                                                                ...onboardingData,
+                                                                careerInterests: [...onboardingData.careerInterests, career]
+                                                            })
+                                                        } else {
+                                                            setOnboardingData({
+                                                                ...onboardingData,
+                                                                careerInterests: onboardingData.careerInterests.filter(c => c !== career)
+                                                            })
+                                                        }
+                                                    }}
+                                                />
+                                                <span>{career}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <Alert>
+                                    <CheckCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        You're all set! Transfer.ai will analyze your profile and create personalized recommendations.
+                                    </AlertDescription>
+                                </Alert>
+                            </div>
+                        )}
+
+                        <div className="flex justify-between mt-8">
+                            <Button
+                                variant="outline"
+                                onClick={handleBack}
+                                disabled={step === 1}
+                            >
+                                Back
+                            </Button>
+
+                            {step < 4 ? (
+                                <Button onClick={handleNext}>
+                                    Next
+                                </Button>
+                            ) : (
+                                <Button onClick={handleComplete}>
+                                    Complete Setup
+                                </Button>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCurrentView }: any) {
+    const [activeTab, setActiveTab] = useState('overview')
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-white shadow-sm border-b">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        <div className="flex items-center">
+                            <GraduationCap className="h-8 w-8 text-blue-600 mr-2" />
+                            <span className="text-2xl font-bold text-blue-600">Transfer.ai</span>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentView('docs')}
+                                size="sm"
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Documentation
+                            </Button>
+                            <span className="text-gray-700">
+                                Welcome, {dashboardData?.profile?.firstName}!
+                            </span>
+                            <Button variant="outline" onClick={onLogout}>
+                                <User className="h-4 w-4 mr-2" />
+                                Logout
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Progress Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <BookOpen className="h-8 w-8 text-blue-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Credits Completed</p>
+                                    <p className="text-2xl font-bold">
+                                        {dashboardData?.progressMetrics?.creditsCompleted || 0}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <Target className="h-8 w-8 text-green-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Current GPA</p>
+                                    <p className="text-2xl font-bold">
+                                        {formatGPA(dashboardData?.progressMetrics?.gpa || 0)}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <Clock className="h-8 w-8 text-orange-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Courses in Progress</p>
+                                    <p className="text-2xl font-bold">
+                                        {dashboardData?.progressMetrics?.coursesInProgress || 0}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <School className="h-8 w-8 text-purple-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Transfer Pathways</p>
+                                    <p className="text-2xl font-bold">
+                                        {dashboardData?.progressMetrics?.transferPathwaysAnalyzed || 0}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Main Content */}
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="courses">Courses</TabsTrigger>
+                        <TabsTrigger value="transfer">Transfer Analysis</TabsTrigger>
+                        <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview" className="space-y-6">
+                        <OverviewTab dashboardData={dashboardData} />
+                    </TabsContent>
+
+                    <TabsContent value="courses" className="space-y-6">
+                        <CoursesTab dashboardData={dashboardData} />
+                    </TabsContent>
+
+                    <TabsContent value="transfer" className="space-y-6">
+                        <TransferAnalysisTab dashboardData={dashboardData} />
+                    </TabsContent>
+
+                    <TabsContent value="recommendations" className="space-y-6">
+                        <RecommendationsTab dashboardData={dashboardData} />
+                    </TabsContent>
+                </Tabs>
+            </div>
+        </div>
+    )
+}
+
+function OverviewTab({ dashboardData }: any) {
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center">
+                        <Target className="h-5 w-5 mr-2" />
+                        Transfer Progress
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div>
+                            <div className="flex justify-between text-sm mb-1">
+                                <span>Credits toward transfer</span>
+                                <span>
+                                    {dashboardData?.progressMetrics?.creditsCompleted || 0} / {dashboardData?.progressMetrics?.targetCredits || 60}
+                                </span>
+                            </div>
+                            <Progress
+                                value={calculateProgress(
+                                    dashboardData?.progressMetrics?.creditsCompleted || 0,
+                                    dashboardData?.progressMetrics?.targetCredits || 60
+                                )}
+                                className="h-2"
+                            />
+                        </div>
+                        <div className="text-sm text-gray-600">
+                            <p>Target Timeline: {getTimelineLabel(dashboardData?.profile?.preferredTransferTimeline || '')}</p>
+                            <p>Intended Major: {dashboardData?.profile?.intendedMajor || 'Not set'}</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center">
+                        <TrendingUp className="h-5 w-5 mr-2" />
+                        Recent Activity
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Profile setup completed</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <AlertCircle className="h-4 w-4 text-orange-600" />
+                            <span className="text-sm">Transfer analysis in progress</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <Clock className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm">Course recommendations available</span>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle>Target Universities</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {dashboardData?.profile?.targetUniversities?.map((uni: string) => (
+                            <Badge key={uni} variant="secondary" className="text-center py-2">
+                                {uni}
+                            </Badge>
+                        )) || <p className="text-gray-500">No target universities set</p>}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+function CoursesTab({ dashboardData }: any) {
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span>Course Recommendations</span>
+                        <Button size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Course
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {dashboardData?.courseRecommendations?.map((course: any, index: number) => (
+                            <div key={index} className="border rounded-lg p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-semibold">{course.code}: {course.name}</h3>
+                                        <p className="text-sm text-gray-600">
+                                            {course.professor} • {course.credits} credits
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <Badge variant={course.priority === 'High' ? 'default' : 'secondary'}>
+                                            {course.priority} Priority
+                                        </Badge>
+                                        {course.rating && (
+                                            <div className="flex items-center mt-1">
+                                                <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                                                <span className="text-sm">{course.rating}/5.0</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <Button size="sm" className="mr-2">Add to Schedule</Button>
+                                <Button size="sm" variant="outline">View Details</Button>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Completed Courses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-gray-500 text-sm">
+                            {dashboardData?.profile?.completedCourses?.length || 0} courses completed
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Current Courses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-gray-500 text-sm">
+                            {dashboardData?.profile?.currentCourses?.length || 0} courses in progress
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Planned Courses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-gray-500 text-sm">
+                            {dashboardData?.profile?.plannedCourses?.length || 0} courses planned
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+function TransferAnalysisTab({ dashboardData }: any) {
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Transfer Pathway Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {dashboardData?.transferPathways?.map((pathway: any) => (
+                            <div key={pathway.id} className="border rounded-lg p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-semibold">{pathway.targetUniversity}</h3>
+                                        <p className="text-sm text-gray-600">{pathway.major}</p>
+                                    </div>
+                                    <Badge variant={pathway.guaranteedTransfer ? 'default' : 'secondary'}>
+                                        {pathway.guaranteedTransfer ? 'Guaranteed Transfer' : 'Competitive'}
+                                    </Badge>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <p className="text-gray-600">Requirements Met</p>
+                                        <p className="font-semibold">{pathway.requirementsMet}/{pathway.totalRequirements}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-600">Transfer Credits</p>
+                                        <p className="font-semibold">{pathway.estimatedTransferCredits}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Credit Transfer Validation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-center py-8">
+                        <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Validation Pending</h3>
+                        <p className="text-gray-600">
+                            Credit transfer validation will be available once you complete more coursework.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+function RecommendationsTab({ dashboardData }: any) {
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Personalized Recommendations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <Alert>
+                            <TrendingUp className="h-4 w-4" />
+                            <AlertDescription>
+                                <strong>Focus on Core Requirements:</strong> Complete your math and English requirements first to strengthen your transfer application.
+                            </AlertDescription>
+                        </Alert>
+
+                        <Alert>
+                            <Clock className="h-4 w-4" />
+                            <AlertDescription>
+                                <strong>Course Timing:</strong> Consider taking heavier course loads in fall semesters when more sections are available.
+                            </AlertDescription>
+                        </Alert>
+
+                        <Alert>
+                            <Target className="h-4 w-4" />
+                            <AlertDescription>
+                                <strong>GPA Strategy:</strong> Maintain above 3.0 GPA to stay competitive for your target universities.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Next Steps</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">1</div>
+                            <span>Register for recommended courses next semester</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-gray-300 text-white text-xs flex items-center justify-center">2</div>
+                            <span>Meet with transfer counselor to review pathway</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 rounded-full bg-gray-300 text-white text-xs flex items-center justify-center">3</div>
+                            <span>Begin university applications (6 months before target transfer)</span>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+function UserJourneyDocs() {
+    return (
+        <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="prose prose-lg max-w-none">
+                <h1>Transfer.ai User Journey Documentation</h1>
+
+                <h2>Overview</h2>
+                <p>
+                    Transfer.ai is a comprehensive platform designed to help community college students
+                    optimize their transfer journey to four-year universities. Our platform centralizes
+                    key functions that students need to successfully transfer and thrive at their target institutions.
+                </p>
+
+                <h2>Key Features</h2>
+
+                <h3>1. Course Selection Optimization</h3>
+                <ul>
+                    <li>RateMyProfessor integration for professor ratings</li>
+                    <li>Convenient time slot recommendations</li>
+                    <li>Major-specific course requirements</li>
+                    <li>Transfer credit validation</li>
+                </ul>
+
+                <h3>2. Guaranteed Transfer Routes</h3>
+                <ul>
+                    <li>State-specific transfer agreements</li>
+                    <li>Articulation agreement tracking</li>
+                    <li>Guaranteed admission pathways</li>
+                    <li>Credit transfer validation</li>
+                </ul>
+
+                <h3>3. Transfer Requisites Monitoring</h3>
+                <ul>
+                    <li>Degree program requirements</li>
+                    <li>Major-specific prerequisites</li>
+                    <li>Pre-professional track guidance</li>
+                    <li>Progress tracking</li>
+                </ul>
+
+                <h3>4. Comprehensive Transfer Lists</h3>
+                <ul>
+                    <li>1-year and 2-year transfer options</li>
+                    <li>University-specific requirements</li>
+                    <li>Credit cross-matching</li>
+                    <li>Admission probability analysis</li>
+                </ul>
+
+                <h2>User Journey</h2>
+
+                <h3>1. Onboarding</h3>
+                <p>
+                    New users complete a comprehensive onboarding process that captures their academic
+                    goals, target universities, current standing, and career interests. This information
+                    is used to personalize their experience and generate relevant recommendations.
+                </p>
+
+                <h3>2. Dashboard Overview</h3>
+                <p>
+                    The main dashboard provides a comprehensive view of the student's progress, including
+                    completed credits, current GPA, courses in progress, and transfer pathway analysis.
+                </p>
+
+                <h3>3. Course Management</h3>
+                <p>
+                    Students can view recommended courses based on their major and transfer goals,
+                    track completed and planned courses, and receive personalized course suggestions.
+                </p>
+
+                <h3>4. Transfer Analysis</h3>
+                <p>
+                    The platform analyzes transfer pathways to target universities, showing requirements
+                    met, estimated transfer credits, and admission probability for each pathway.
+                </p>
+
+                <h3>5. Recommendations</h3>
+                <p>
+                    Personalized recommendations help students optimize their course selection, maintain
+                    competitive GPAs, and follow the most efficient transfer pathways.
+                </p>
+
+                <h2>Technical Architecture</h2>
+                <p>
+                    Built with Next.js, TypeScript, and Supabase, Transfer.ai provides a modern,
+                    scalable platform with real-time data synchronization and secure user authentication.
+                </p>
+            </div>
+        </div>
+    )
+} 

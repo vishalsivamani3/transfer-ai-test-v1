@@ -1,0 +1,155 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Database types
+export interface Database {
+    public: {
+        Tables: {
+            profiles: {
+                Row: {
+                    id: string
+                    email: string
+                    first_name: string
+                    last_name: string
+                    current_college: string
+                    academic_year: string
+                    onboarding_completed: boolean
+                    intended_major?: string
+                    target_universities?: string[]
+                    preferred_transfer_timeline?: string
+                    current_gpa?: number
+                    completed_credits?: number
+                    transfer_goals?: string[]
+                    career_interests?: string[]
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id: string
+                    email: string
+                    first_name: string
+                    last_name: string
+                    current_college: string
+                    academic_year: string
+                    onboarding_completed?: boolean
+                    intended_major?: string
+                    target_universities?: string[]
+                    preferred_transfer_timeline?: string
+                    current_gpa?: number
+                    completed_credits?: number
+                    transfer_goals?: string[]
+                    career_interests?: string[]
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    email?: string
+                    first_name?: string
+                    last_name?: string
+                    current_college?: string
+                    academic_year?: string
+                    onboarding_completed?: boolean
+                    intended_major?: string
+                    target_universities?: string[]
+                    preferred_transfer_timeline?: string
+                    current_gpa?: number
+                    completed_credits?: number
+                    transfer_goals?: string[]
+                    career_interests?: string[]
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            courses: {
+                Row: {
+                    id: string
+                    user_id: string
+                    code: string
+                    name: string
+                    credits: number
+                    grade?: string
+                    semester?: string
+                    year?: number
+                    status: 'completed' | 'in_progress' | 'planned'
+                    professor?: string
+                    rating?: number
+                    transfer_credits?: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    code: string
+                    name: string
+                    credits: number
+                    grade?: string
+                    semester?: string
+                    year?: number
+                    status: 'completed' | 'in_progress' | 'planned'
+                    professor?: string
+                    rating?: number
+                    transfer_credits?: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    code?: string
+                    name?: string
+                    credits?: number
+                    grade?: string
+                    semester?: string
+                    year?: number
+                    status?: 'completed' | 'in_progress' | 'planned'
+                    professor?: string
+                    rating?: number
+                    transfer_credits?: number
+                    created_at?: string
+                }
+            }
+            transfer_pathways: {
+                Row: {
+                    id: string
+                    user_id: string
+                    target_university: string
+                    major: string
+                    guaranteed_transfer: boolean
+                    requirements_met: number
+                    total_requirements: number
+                    estimated_transfer_credits: number
+                    timeline: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    target_university: string
+                    major: string
+                    guaranteed_transfer: boolean
+                    requirements_met: number
+                    total_requirements: number
+                    estimated_transfer_credits: number
+                    timeline: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    target_university?: string
+                    major?: string
+                    guaranteed_transfer?: boolean
+                    requirements_met?: number
+                    total_requirements?: number
+                    estimated_transfer_credits?: number
+                    timeline?: string
+                    created_at?: string
+                }
+            }
+        }
+    }
+} 
