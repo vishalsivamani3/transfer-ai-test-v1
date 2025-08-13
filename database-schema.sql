@@ -4,6 +4,57 @@
 -- Enable Row Level Security
 ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret';
 
+-- Create student_profiles table
+CREATE TABLE IF NOT EXISTS student_profiles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+    email TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    current_college TEXT NOT NULL,
+    academic_year TEXT NOT NULL,
+    intended_major TEXT,
+    target_state TEXT,
+    degree_goal TEXT,
+    target_universities TEXT[],
+    preferred_transfer_timeline TEXT,
+    current_gpa DECIMAL(3,2),
+    completed_credits INTEGER DEFAULT 0,
+    transfer_goals TEXT[],
+    career_interests TEXT[],
+    onboarding_completed BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for student_profiles
+CREATE INDEX IF NOT EXISTS idx_student_profiles_user_id ON student_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_email ON student_profiles(email);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_state ON student_profiles(target_state);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_major ON student_profiles(intended_major);
+
+-- Create trigger for student_profiles updated_at
+CREATE TRIGGER update_student_profiles_updated_at 
+    BEFORE UPDATE ON student_profiles 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable Row Level Security for student_profiles
+ALTER TABLE student_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for student_profiles
+CREATE POLICY "Users can view their own student profile" ON student_profiles
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own student profile" ON student_profiles
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own student profile" ON student_profiles
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own student profile" ON student_profiles
+    FOR DELETE USING (auth.uid() = user_id);
+
 -- Create transfer_pathways table
 CREATE TABLE IF NOT EXISTS transfer_pathways (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
