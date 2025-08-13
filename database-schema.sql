@@ -55,6 +55,51 @@ CREATE POLICY "Users can update their own student profile" ON student_profiles
 CREATE POLICY "Users can delete their own student profile" ON student_profiles
     FOR DELETE USING (auth.uid() = user_id);
 
+-- Create student_courses table
+CREATE TABLE IF NOT EXISTS student_courses (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'selected' CHECK (status IN ('selected', 'enrolled', 'completed', 'dropped')),
+    selection_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    enrollment_date TIMESTAMP WITH TIME ZONE,
+    completion_date TIMESTAMP WITH TIME ZONE,
+    grade TEXT,
+    notes TEXT,
+    priority INTEGER DEFAULT 1 CHECK (priority >= 1 AND priority <= 5),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, course_id)
+);
+
+-- Create indexes for student_courses table
+CREATE INDEX IF NOT EXISTS idx_student_courses_user_id ON student_courses(user_id);
+CREATE INDEX IF NOT EXISTS idx_student_courses_course_id ON student_courses(course_id);
+CREATE INDEX IF NOT EXISTS idx_student_courses_status ON student_courses(status);
+CREATE INDEX IF NOT EXISTS idx_student_courses_selection_date ON student_courses(selection_date);
+
+-- Create trigger for student_courses updated_at
+CREATE TRIGGER update_student_courses_updated_at 
+    BEFORE UPDATE ON student_courses 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable Row Level Security for student_courses
+ALTER TABLE student_courses ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for student_courses
+CREATE POLICY "Users can view their own course selections" ON student_courses
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own course selections" ON student_courses
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own course selections" ON student_courses
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own course selections" ON student_courses
+    FOR DELETE USING (auth.uid() = user_id);
+
 -- Create courses table
 CREATE TABLE IF NOT EXISTS courses (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

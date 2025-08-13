@@ -370,6 +370,279 @@ export async function getUniqueMajors(): Promise<string[]> {
   }
 }
 
+// Student Course Selection Functions
+
+export interface StudentCourse {
+  id: string
+  userId: string
+  courseId: string
+  status: 'selected' | 'enrolled' | 'completed' | 'dropped'
+  selectionDate: string
+  enrollmentDate?: string
+  completionDate?: string
+  grade?: string
+  notes?: string
+  priority: number
+  createdAt: string
+  updatedAt: string
+  course?: Course // Include full course details when needed
+}
+
+export interface StudentCourseWithDetails extends StudentCourse {
+  course: Course
+}
+
+/**
+ * Add a course to student's selections
+ */
+export async function addStudentCourse(
+  userId: string,
+  courseId: string,
+  priority: number = 1,
+  notes?: string
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true // Mock success
+    }
+
+    const { error } = await supabase
+      .from('student_courses')
+      .insert({
+        user_id: userId,
+        course_id: courseId,
+        priority,
+        notes,
+        status: 'selected'
+      })
+
+    if (error) {
+      console.error('Error adding student course:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in addStudentCourse:', error)
+    return false
+  }
+}
+
+/**
+ * Remove a course from student's selections
+ */
+export async function removeStudentCourse(
+  userId: string,
+  courseId: string
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true // Mock success
+    }
+
+    const { error } = await supabase
+      .from('student_courses')
+      .delete()
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+
+    if (error) {
+      console.error('Error removing student course:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in removeStudentCourse:', error)
+    return false
+  }
+}
+
+/**
+ * Update student course status
+ */
+export async function updateStudentCourseStatus(
+  userId: string,
+  courseId: string,
+  status: 'selected' | 'enrolled' | 'completed' | 'dropped',
+  grade?: string,
+  notes?: string
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true // Mock success
+    }
+
+    const updateData: any = { status }
+    
+    if (status === 'enrolled') {
+      updateData.enrollment_date = new Date().toISOString()
+    } else if (status === 'completed') {
+      updateData.completion_date = new Date().toISOString()
+    }
+    
+    if (grade) updateData.grade = grade
+    if (notes) updateData.notes = notes
+
+    const { error } = await supabase
+      .from('student_courses')
+      .update(updateData)
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+
+    if (error) {
+      console.error('Error updating student course status:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in updateStudentCourseStatus:', error)
+    return false
+  }
+}
+
+/**
+ * Get all courses selected by a student
+ */
+export async function getStudentCourses(userId: string): Promise<StudentCourseWithDetails[]> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return [] // Return empty array for mock data
+    }
+
+    const { data, error } = await supabase
+      .from('student_courses')
+      .select(`
+        *,
+        course:courses(*)
+      `)
+      .eq('user_id', userId)
+      .order('priority', { ascending: true })
+      .order('selection_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching student courses:', error)
+      return []
+    }
+
+    return data?.map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      courseId: item.course_id,
+      status: item.status,
+      selectionDate: item.selection_date,
+      enrollmentDate: item.enrollment_date,
+      completionDate: item.completion_date,
+      grade: item.grade,
+      notes: item.notes,
+      priority: item.priority,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      course: {
+        id: item.course.id,
+        institution: item.course.institution,
+        courseCode: item.course.course_code,
+        courseName: item.course.course_name,
+        department: item.course.department,
+        credits: item.course.credits,
+        description: item.course.description,
+        prerequisites: item.course.prerequisites,
+        corequisites: item.course.corequisites,
+        professorName: item.course.professor_name,
+        professorEmail: item.course.professor_email,
+        professorRmpId: item.course.professor_rmp_id,
+        professorRating: item.course.professor_rating,
+        professorDifficulty: item.course.professor_difficulty,
+        professorWouldTakeAgain: item.course.professor_would_take_again,
+        professorTotalRatings: item.course.professor_total_ratings,
+        classTimes: item.course.class_times ? JSON.parse(item.course.class_times) : [],
+        location: item.course.location,
+        capacity: item.course.capacity,
+        enrolled: item.course.enrolled,
+        waitlistCount: item.course.waitlist_count,
+        semester: item.course.semester,
+        academicYear: item.course.academic_year,
+        transferCredits: item.course.transfer_credits,
+        transferNotes: item.course.transfer_notes,
+        created_at: item.course.created_at,
+        updated_at: item.course.updated_at
+      }
+    })) || []
+  } catch (error) {
+    console.error('Error in getStudentCourses:', error)
+    return []
+  }
+}
+
+/**
+ * Check if a course is selected by a student
+ */
+export async function isCourseSelected(
+  userId: string,
+  courseId: string
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return false // Mock not selected
+    }
+
+    const { data, error } = await supabase
+      .from('student_courses')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+      .single()
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      console.error('Error checking if course is selected:', error)
+      return false
+    }
+
+    return !!data
+  } catch (error) {
+    console.error('Error in isCourseSelected:', error)
+    return false
+  }
+}
+
+/**
+ * Update course priority
+ */
+export async function updateCoursePriority(
+  userId: string,
+  courseId: string,
+  priority: number
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true // Mock success
+    }
+
+    const { error } = await supabase
+      .from('student_courses')
+      .update({ priority })
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+
+    if (error) {
+      console.error('Error updating course priority:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in updateCoursePriority:', error)
+    return false
+  }
+}
+
 // Course Query Functions
 
 export interface Course {

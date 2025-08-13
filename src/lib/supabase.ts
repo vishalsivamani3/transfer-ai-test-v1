@@ -139,6 +139,50 @@ export interface Database {
                     updated_at?: string
                 }
             }
+            student_courses: {
+                Row: {
+                    id: string
+                    user_id: string
+                    course_id: string
+                    status: 'selected' | 'enrolled' | 'completed' | 'dropped'
+                    selection_date: string
+                    enrollment_date?: string
+                    completion_date?: string
+                    grade?: string
+                    notes?: string
+                    priority: number
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    course_id: string
+                    status?: 'selected' | 'enrolled' | 'completed' | 'dropped'
+                    selection_date?: string
+                    enrollment_date?: string
+                    completion_date?: string
+                    grade?: string
+                    notes?: string
+                    priority?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    course_id?: string
+                    status?: 'selected' | 'enrolled' | 'completed' | 'dropped'
+                    selection_date?: string
+                    enrollment_date?: string
+                    completion_date?: string
+                    grade?: string
+                    notes?: string
+                    priority?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
             courses: {
                 Row: {
                     id: string

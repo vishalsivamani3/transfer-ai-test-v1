@@ -16,20 +16,23 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import {
-  Search,
-  Filter,
-  Star,
-  Clock,
-  MapPin,
-  Users,
+import { 
+  Search, 
+  Filter, 
+  Star, 
+  Clock, 
+  MapPin, 
+  Users, 
   BookOpen,
   TrendingUp,
   TrendingDown,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Plus,
+  Minus
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   fetchCourses,
   getUniqueInstitutions,
@@ -37,18 +40,26 @@ import {
   getUniqueSemesters,
   fetchProfessorRating,
   updateCourseWithProfessorRating,
+  addStudentCourse,
+  removeStudentCourse,
+  isCourseSelected,
+  getStudentCourses,
   type Course,
-  type CourseFilters
+  type CourseFilters,
+  type StudentCourseWithDetails
 } from '@/lib/queries'
 
 interface CourseDashboardProps {
   studentInstitution?: string
   onCourseSelect?: (course: Course) => void
+  userId?: string
 }
 
-export default function CourseDashboard({ studentInstitution, onCourseSelect }: CourseDashboardProps) {
+export default function CourseDashboard({ studentInstitution, onCourseSelect, userId }: CourseDashboardProps) {
   const [courses, setCourses] = useState<Course[]>([])
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
+  const [selectedCourses, setSelectedCourses] = useState<StudentCourseWithDetails[]>([])
+  const [courseSelectionStatus, setCourseSelectionStatus] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -91,18 +102,27 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
       setLoading(true)
       setError(null)
 
-      // Load courses and filter options in parallel
-      const [coursesData, institutionsData, departmentsData, semestersData] = await Promise.all([
+      // Load courses, filter options, and selected courses in parallel
+      const [coursesData, institutionsData, departmentsData, semestersData, selectedCoursesData] = await Promise.all([
         fetchCourses(filters),
         getUniqueInstitutions(),
         getUniqueDepartments(),
-        getUniqueSemesters()
+        getUniqueSemesters(),
+        userId ? getStudentCourses(userId) : Promise.resolve([])
       ])
 
       setCourses(coursesData)
       setInstitutions(institutionsData)
       setDepartments(departmentsData)
       setSemesters(semestersData)
+      setSelectedCourses(selectedCoursesData)
+
+      // Build selection status map
+      const selectionMap: Record<string, boolean> = {}
+      selectedCoursesData.forEach(selectedCourse => {
+        selectionMap[selectedCourse.courseId] = true
+      })
+      setCourseSelectionStatus(selectionMap)
     } catch (err) {
       setError('Failed to load course data. Please try again.')
       console.error('Error loading course data:', err)
@@ -272,6 +292,53 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
       }
     } catch (error) {
       console.error('Error refreshing professor rating:', error)
+    }
+  }
+
+  const handleCourseSelection = async (course: Course) => {
+    if (!userId) {
+      setError('Please log in to select courses')
+      return
+    }
+
+    const isSelected = courseSelectionStatus[course.id]
+
+    try {
+      if (isSelected) {
+        // Remove course from selections
+        const success = await removeStudentCourse(userId, course.id)
+        if (success) {
+          setCourseSelectionStatus(prev => ({ ...prev, [course.id]: false }))
+          setSelectedCourses(prev => prev.filter(sc => sc.courseId !== course.id))
+          toast.success(`${course.courseCode} removed from selections`)
+        } else {
+          setError('Failed to remove course from selections')
+        }
+      } else {
+        // Add course to selections
+        const success = await addStudentCourse(userId, course.id)
+        if (success) {
+          setCourseSelectionStatus(prev => ({ ...prev, [course.id]: true }))
+          const newSelectedCourse: StudentCourseWithDetails = {
+            id: `temp-${Date.now()}`,
+            userId,
+            courseId: course.id,
+            status: 'selected',
+            selectionDate: new Date().toISOString(),
+            priority: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            course
+          }
+          setSelectedCourses(prev => [...prev, newSelectedCourse])
+          toast.success(`${course.courseCode} added to selections`)
+        } else {
+          setError('Failed to add course to selections')
+        }
+      }
+    } catch (error) {
+      console.error('Error handling course selection:', error)
+      setError('Failed to update course selection')
     }
   }
 
@@ -475,11 +542,16 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
         </CardContent>
       </Card>
 
-      {/* Results Summary */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Showing {filteredCourses.length} of {courses.length} courses
-        </div>
+                        {/* Results Summary */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Showing {filteredCourses.length} of {courses.length} courses
+                      {userId && selectedCourses.length > 0 && (
+                        <span className="ml-4 text-blue-600">
+                          • {selectedCourses.length} course{selectedCourses.length !== 1 ? 's' : ''} selected
+                        </span>
+                      )}
+                    </div>
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>Sort by:</span>
           <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
@@ -618,28 +690,48 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
                         <span className="text-sm">{availability.text}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {course.professorName && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => refreshProfessorRating(course)}
-                            title="Refresh professor rating"
-                          >
-                            <Star className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {onCourseSelect && (
-                          <Button
-                            size="sm"
-                            onClick={() => onCourseSelect(course)}
-                          >
-                            Select
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+                                                    <TableCell>
+                                  <div className="flex gap-2">
+                                    {course.professorName && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => refreshProfessorRating(course)}
+                                        title="Refresh professor rating"
+                                      >
+                                        <Star className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                    {userId && (
+                                      <Button
+                                        variant={courseSelectionStatus[course.id] ? "destructive" : "default"}
+                                        size="sm"
+                                        onClick={() => handleCourseSelection(course)}
+                                        title={courseSelectionStatus[course.id] ? "Remove from selections" : "Add to selections"}
+                                      >
+                                        {courseSelectionStatus[course.id] ? (
+                                          <>
+                                            <Minus className="h-3 w-3 mr-1" />
+                                            Remove
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Plus className="h-3 w-3 mr-1" />
+                                            Select
+                                          </>
+                                        )}
+                                      </Button>
+                                    )}
+                                    {onCourseSelect && !userId && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => onCourseSelect(course)}
+                                      >
+                                        Select
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
                   </TableRow>
                 )
               })}
