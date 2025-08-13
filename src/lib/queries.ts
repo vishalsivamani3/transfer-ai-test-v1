@@ -477,13 +477,13 @@ export async function updateStudentCourseStatus(
     }
 
     const updateData: any = { status }
-    
+
     if (status === 'enrolled') {
       updateData.enrollment_date = new Date().toISOString()
     } else if (status === 'completed') {
       updateData.completion_date = new Date().toISOString()
     }
-    
+
     if (grade) updateData.grade = grade
     if (notes) updateData.notes = notes
 

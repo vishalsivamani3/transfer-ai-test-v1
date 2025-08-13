@@ -52,12 +52,15 @@ export default function TransferAI() {
     const [error, setError] = useState('')
 
     useEffect(() => {
+        console.log('TransferAI component mounted')
         checkSession()
     }, [])
 
     const checkSession = async () => {
         try {
+            console.log('Checking session...')
             const { data: { session } } = await supabase.auth.getSession()
+            console.log('Session data:', session)
             if (session?.user) {
                 // Convert Supabase User to our UserType
                 const userData: UserType = {
@@ -70,26 +73,32 @@ export default function TransferAI() {
                         academicYear: session.user.user_metadata?.academicYear || ''
                     }
                 }
+                console.log('Setting user data:', userData)
                 setUser(userData)
-                await loadDashboardData(session.access_token)
+                await loadDashboardData(session.access_token, userData)
+            } else {
+                console.log('No session found, showing login')
             }
         } catch (error) {
             console.error('Session check error:', error)
+            setError('Failed to check session')
         } finally {
             setLoading(false)
         }
     }
 
-    const loadDashboardData = async (accessToken: string) => {
+    const loadDashboardData = async (accessToken: string, userData?: UserType) => {
         try {
+            console.log('Loading dashboard data...')
+            const currentUser = userData || user
             // Mock dashboard data for demo
             const mockProfile: StudentProfile = {
-                userId: user?.id || '',
-                email: user?.email || '',
-                firstName: user?.user_metadata?.firstName || 'Student',
-                lastName: user?.user_metadata?.lastName || '',
-                currentCollege: user?.user_metadata?.currentCollege || 'Community College',
-                academicYear: user?.user_metadata?.academicYear || 'sophomore',
+                userId: currentUser?.id || '',
+                email: currentUser?.email || '',
+                firstName: currentUser?.user_metadata?.firstName || 'Student',
+                lastName: currentUser?.user_metadata?.lastName || '',
+                currentCollege: currentUser?.user_metadata?.currentCollege || 'Community College',
+                academicYear: currentUser?.user_metadata?.academicYear || 'sophomore',
                 onboardingCompleted: true,
                 intendedMajor: 'Computer Science',
                 targetUniversities: ['UCLA', 'UC Berkeley', 'USC'],
@@ -168,7 +177,7 @@ export default function TransferAI() {
             }
 
             setUser(mockUser)
-            await loadDashboardData('mock-token')
+            await loadDashboardData('mock-token', mockUser)
         } catch (error) {
             console.error('Login error:', error)
             setError('Login failed')
@@ -182,7 +191,7 @@ export default function TransferAI() {
             setLoading(true)
 
             toast.success('Onboarding completed!')
-            await loadDashboardData('mock-token')
+            await loadDashboardData('mock-token', user || undefined)
         } catch (error) {
             console.error('Onboarding error:', error)
             setError('Failed to complete onboarding')
@@ -209,60 +218,87 @@ export default function TransferAI() {
         )
     }
 
-    // Documentation view
-    if (currentView === 'docs') {
-        return (
-            <div>
-                <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex justify-between items-center h-16">
-                            <Button
-                                variant="outline"
-                                onClick={() => setCurrentView(user ? 'dashboard' : 'login')}
-                                className="flex items-center"
-                            >
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back to App
-                            </Button>
-                            <div className="flex items-center">
-                                <GraduationCap className="h-8 w-8 text-blue-600 mr-2" />
-                                <span className="text-2xl font-bold text-blue-600">Transfer.ai</span>
-                                <Badge variant="outline" className="ml-3">Documentation</Badge>
+    try {
+        // Documentation view
+        if (currentView === 'docs') {
+            return (
+                <div>
+                    <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-16">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCurrentView(user ? 'dashboard' : 'login')}
+                                    className="flex items-center"
+                                >
+                                    <ArrowLeft className="h-4 w-4 mr-2" />
+                                    Back to App
+                                </Button>
+                                <div className="flex items-center">
+                                    <GraduationCap className="h-8 w-8 text-blue-600 mr-2" />
+                                    <span className="text-2xl font-bold text-blue-600">Transfer.ai</span>
+                                    <Badge variant="outline" className="ml-3">Documentation</Badge>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <UserJourneyDocs />
                 </div>
-                <UserJourneyDocs />
+            )
+        }
+
+        if (!user) {
+            return <AuthView
+                currentView={currentView}
+                setCurrentView={setCurrentView}
+                onSignup={handleSignup}
+                onLogin={handleLogin}
+                error={error}
+                setError={setError}
+            />
+        }
+
+        if (currentView === 'onboarding') {
+            return <OnboardingView
+                user={user}
+                onComplete={handleCompleteOnboarding}
+                error={error}
+            />
+        }
+
+        if (!dashboardData) {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading dashboard data...</p>
+                    </div>
+                </div>
+            )
+        }
+
+        return <DashboardView
+            user={user}
+            dashboardData={dashboardData}
+            onLogout={handleLogout}
+            refreshDashboard={() => loadDashboardData('', user || undefined)}
+            setCurrentView={setCurrentView}
+        />
+    } catch (error) {
+        console.error('Render error:', error)
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="text-center">
+                    <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+                    <h1 className="text-xl font-semibold text-gray-900 mb-2">Something went wrong</h1>
+                    <p className="text-gray-600 mb-4">Please refresh the page or try again later.</p>
+                    <Button onClick={() => window.location.reload()}>
+                        Refresh Page
+                    </Button>
+                </div>
             </div>
         )
     }
-
-    if (!user) {
-        return <AuthView
-            currentView={currentView}
-            setCurrentView={setCurrentView}
-            onSignup={handleSignup}
-            onLogin={handleLogin}
-            error={error}
-            setError={setError}
-        />
-    }
-
-    if (currentView === 'onboarding') {
-        return <OnboardingView
-            user={user}
-            onComplete={handleCompleteOnboarding}
-            error={error}
-        />
-    }
-
-    return <DashboardView
-        user={user}
-        dashboardData={dashboardData!}
-        onLogout={handleLogout}
-        refreshDashboard={() => loadDashboardData('')}
-        setCurrentView={setCurrentView}
-    />
 }
 
 function AuthView({ currentView, setCurrentView, onSignup, onLogin, error, setError }: any) {
@@ -789,8 +825,8 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
                     </TabsContent>
 
                     <TabsContent value="courses" className="space-y-6">
-                        <CourseDashboard 
-                            studentInstitution={user?.user_metadata?.currentCollege} 
+                        <CourseDashboard
+                            studentInstitution={user?.user_metadata?.currentCollege}
                             userId={user?.id}
                         />
                     </TabsContent>
