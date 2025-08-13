@@ -118,11 +118,15 @@ export interface Database {
                     user_id: string
                     target_university: string
                     major: string
+                    state: string
                     guaranteed_transfer: boolean
                     requirements_met: number
                     total_requirements: number
                     estimated_transfer_credits: number
                     timeline: string
+                    acceptance_rate?: number
+                    min_gpa?: number
+                    application_deadline?: string
                     created_at: string
                 }
                 Insert: {
@@ -130,11 +134,15 @@ export interface Database {
                     user_id: string
                     target_university: string
                     major: string
+                    state: string
                     guaranteed_transfer: boolean
                     requirements_met: number
                     total_requirements: number
                     estimated_transfer_credits: number
                     timeline: string
+                    acceptance_rate?: number
+                    min_gpa?: number
+                    application_deadline?: string
                     created_at?: string
                 }
                 Update: {
@@ -142,11 +150,15 @@ export interface Database {
                     user_id?: string
                     target_university?: string
                     major?: string
+                    state?: string
                     guaranteed_transfer?: boolean
                     requirements_met?: number
                     total_requirements?: number
                     estimated_transfer_credits?: number
                     timeline?: string
+                    acceptance_rate?: number
+                    min_gpa?: number
+                    application_deadline?: string
                     created_at?: string
                 }
             }

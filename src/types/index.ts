@@ -47,11 +47,15 @@ export interface TransferPathway {
     id: string
     targetUniversity: string
     major: string
+    state: string
     guaranteedTransfer: boolean
     requirementsMet: number
     totalRequirements: number
     estimatedTransferCredits: number
     timeline: string
+    acceptanceRate?: number
+    minGPA?: number
+    applicationDeadline?: string
 }
 
 export interface CourseRecommendation {

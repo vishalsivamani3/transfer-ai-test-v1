@@ -115,6 +115,14 @@ The application uses Supabase with the following main tables:
 - Credit transfer validation
 - Admission probability assessment
 
+### Transfer Pathways Database
+- Searchable and filterable transfer opportunities
+- Filter by state, major, transfer type, and timeline
+- Real-time progress tracking for each pathway
+- Acceptance rates and minimum GPA requirements
+- Application deadline tracking
+- Guaranteed vs. standard transfer pathway identification
+
 ### Recommendations Engine
 - AI-powered course recommendations
 - GPA optimization strategies

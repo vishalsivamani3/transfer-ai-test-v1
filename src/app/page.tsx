@@ -39,6 +39,7 @@ import {
     generateTransferPathways,
     generateCourseRecommendations
 } from '@/lib/utils'
+import { TransferPathwaysTable } from '@/components/TransferPathwaysTable'
 
 export default function TransferAI() {
     const [user, setUser] = useState<UserType | null>(null)
@@ -766,10 +767,11 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
 
                 {/* Main Content */}
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="courses">Courses</TabsTrigger>
                         <TabsTrigger value="transfer">Transfer Analysis</TabsTrigger>
+                        <TabsTrigger value="pathways">Pathways</TabsTrigger>
                         <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
                     </TabsList>
 
@@ -783,6 +785,10 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
 
                     <TabsContent value="transfer" className="space-y-6">
                         <TransferAnalysisTab dashboardData={dashboardData} />
+                    </TabsContent>
+
+                    <TabsContent value="pathways" className="space-y-6">
+                        <TransferPathwaysTab user={user} />
                     </TabsContent>
 
                     <TabsContent value="recommendations" className="space-y-6">
@@ -1062,6 +1068,23 @@ function RecommendationsTab({ dashboardData }: any) {
                     </div>
                 </CardContent>
             </Card>
+        </div>
+    )
+}
+
+function TransferPathwaysTab({ user }: { user: UserType }) {
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Transfer Pathways</h2>
+                    <p className="text-muted-foreground">
+                        Explore and filter transfer opportunities by state, major, and requirements
+                    </p>
+                </div>
+            </div>
+            
+            <TransferPathwaysTable userId={user.id} />
         </div>
     )
 }

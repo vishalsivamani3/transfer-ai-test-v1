@@ -46,24 +46,104 @@ export function validateCredits(credits: number): boolean {
 }
 
 export function generateTransferPathways(profile: any) {
-    // Mock transfer pathway generation
-    const pathways = []
-    const universities = profile.targetUniversities || []
+  // Mock transfer pathway generation
+  const pathways = []
+  const universities = profile.targetUniversities || []
 
-    for (const university of universities) {
-        pathways.push({
-            id: `pathway-${university.toLowerCase().replace(/\s+/g, '-')}`,
-            targetUniversity: university,
-            major: profile.intendedMajor || 'Undeclared',
-            guaranteedTransfer: Math.random() > 0.3,
-            requirementsMet: Math.floor(Math.random() * 10) + 5,
-            totalRequirements: 15,
-            estimatedTransferCredits: Math.floor(Math.random() * 30) + 45,
-            timeline: profile.preferredTransferTimeline || '2-year'
-        })
-    }
+  for (const university of universities) {
+    pathways.push({
+      id: `pathway-${university.toLowerCase().replace(/\s+/g, '-')}`,
+      targetUniversity: university,
+      major: profile.intendedMajor || 'Undeclared',
+      state: 'California',
+      guaranteedTransfer: Math.random() > 0.3,
+      requirementsMet: Math.floor(Math.random() * 10) + 5,
+      totalRequirements: 15,
+      estimatedTransferCredits: Math.floor(Math.random() * 30) + 45,
+      timeline: profile.preferredTransferTimeline || '2-year',
+      acceptanceRate: Math.floor(Math.random() * 30) + 20,
+      minGPA: 2.5 + Math.random() * 1.5,
+      applicationDeadline: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString()
+    })
+  }
 
-    return pathways
+  return pathways
+}
+
+export function generateMockTransferPathways() {
+  const universities = [
+    { name: 'UCLA', state: 'California', acceptanceRate: 12.4 },
+    { name: 'UC Berkeley', state: 'California', acceptanceRate: 14.4 },
+    { name: 'UC San Diego', state: 'California', acceptanceRate: 34.3 },
+    { name: 'UC Irvine', state: 'California', acceptanceRate: 28.7 },
+    { name: 'UC Davis', state: 'California', acceptanceRate: 46.3 },
+    { name: 'UC Santa Barbara', state: 'California', acceptanceRate: 29.2 },
+    { name: 'UC Riverside', state: 'California', acceptanceRate: 65.8 },
+    { name: 'UC Merced', state: 'California', acceptanceRate: 85.4 },
+    { name: 'UC Santa Cruz', state: 'California', acceptanceRate: 47.1 },
+    { name: 'USC', state: 'California', acceptanceRate: 11.4 },
+    { name: 'Stanford University', state: 'California', acceptanceRate: 4.3 },
+    { name: 'Caltech', state: 'California', acceptanceRate: 3.9 },
+    { name: 'University of Washington', state: 'Washington', acceptanceRate: 53.5 },
+    { name: 'University of Oregon', state: 'Oregon', acceptanceRate: 83.4 },
+    { name: 'University of Arizona', state: 'Arizona', acceptanceRate: 85.1 },
+    { name: 'Arizona State University', state: 'Arizona', acceptanceRate: 88.2 },
+    { name: 'University of Nevada, Reno', state: 'Nevada', acceptanceRate: 88.1 },
+    { name: 'University of Utah', state: 'Utah', acceptanceRate: 79.4 },
+    { name: 'University of Colorado Boulder', state: 'Colorado', acceptanceRate: 78.9 },
+    { name: 'University of Texas at Austin', state: 'Texas', acceptanceRate: 31.8 }
+  ]
+
+  const majors = [
+    'Computer Science',
+    'Engineering',
+    'Business Administration',
+    'Psychology',
+    'Biology',
+    'Chemistry',
+    'Mathematics',
+    'Physics',
+    'Economics',
+    'Political Science',
+    'English',
+    'History',
+    'Sociology',
+    'Anthropology',
+    'Environmental Science',
+    'Nursing',
+    'Pre-Medicine',
+    'Pre-Law',
+    'Art History',
+    'Film Studies'
+  ]
+
+  const pathways = []
+
+  for (let i = 0; i < 50; i++) {
+    const university = universities[Math.floor(Math.random() * universities.length)]
+    const major = majors[Math.floor(Math.random() * majors.length)]
+    const guaranteedTransfer = Math.random() > 0.4
+    const requirementsMet = Math.floor(Math.random() * 12) + 3
+    const totalRequirements = 15
+    const timeline = ['1-year', '2-year', 'flexible'][Math.floor(Math.random() * 3)]
+    
+    pathways.push({
+      id: `pathway-${i}`,
+      targetUniversity: university.name,
+      major: major,
+      state: university.state,
+      guaranteedTransfer: guaranteedTransfer,
+      requirementsMet: requirementsMet,
+      totalRequirements: totalRequirements,
+      estimatedTransferCredits: Math.floor(Math.random() * 40) + 30,
+      timeline: timeline,
+      acceptanceRate: university.acceptanceRate + (Math.random() - 0.5) * 10,
+      minGPA: 2.0 + Math.random() * 2.0,
+      applicationDeadline: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString()
+    })
+  }
+
+  return pathways
 }
 
 export function generateCourseRecommendations(profile: any) {
