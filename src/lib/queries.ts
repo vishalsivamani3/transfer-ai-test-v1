@@ -5,7 +5,7 @@ import { generateMockTransferPathways, generateMockCourses } from './utils'
 export interface TransferPathwayFilters {
   state?: string
   major?: string
-  guaranteedTransfer?: boolean
+  guaranteedTransfer?: boolean | string
   minGPA?: number
   timeline?: string
 }
@@ -414,12 +414,12 @@ export interface CourseFilters {
   department?: string
   courseCode?: string
   professorName?: string
-  minRating?: number
-  maxDifficulty?: number
+  minRating?: number | string
+  maxDifficulty?: number | string
   semester?: string
   academicYear?: string
-  transferCredits?: boolean
-  availableSeats?: boolean
+  transferCredits?: boolean | string
+  availableSeats?: boolean | string
 }
 
 /**

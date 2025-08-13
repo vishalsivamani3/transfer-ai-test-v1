@@ -202,7 +202,9 @@ export function generateMockCourses() {
       semester: 'Fall 2024',
       academicYear: '2024-2025',
       transferCredits: true,
-      transferNotes: 'Transfers to all UC and CSU campuses'
+      transferNotes: 'Transfers to all UC and CSU campuses',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     {
       id: 'cs-1-chen',
@@ -229,7 +231,9 @@ export function generateMockCourses() {
       semester: 'Fall 2024',
       academicYear: '2024-2025',
       transferCredits: true,
-      transferNotes: 'Transfers to all UC and CSU campuses'
+      transferNotes: 'Transfers to all UC and CSU campuses',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     {
       id: 'cs-2-rodriguez',
@@ -256,7 +260,9 @@ export function generateMockCourses() {
       semester: 'Fall 2024',
       academicYear: '2024-2025',
       transferCredits: true,
-      transferNotes: 'Transfers to all UC and CSU campuses'
+      transferNotes: 'Transfers to all UC and CSU campuses',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     // Mathematics Courses
     {
@@ -284,7 +290,9 @@ export function generateMockCourses() {
       semester: 'Fall 2024',
       academicYear: '2024-2025',
       transferCredits: true,
-      transferNotes: 'Transfers to all UC and CSU campuses'
+      transferNotes: 'Transfers to all UC and CSU campuses',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     {
       id: 'math-2-thompson',
@@ -311,7 +319,9 @@ export function generateMockCourses() {
       semester: 'Fall 2024',
       academicYear: '2024-2025',
       transferCredits: true,
-      transferNotes: 'Transfers to all UC and CSU campuses'
+      transferNotes: 'Transfers to all UC and CSU campuses',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     // Physics Courses
     {
@@ -339,7 +349,9 @@ export function generateMockCourses() {
       semester: 'Fall 2024',
       academicYear: '2024-2025',
       transferCredits: true,
-      transferNotes: 'Transfers to all UC and CSU campuses'
+      transferNotes: 'Transfers to all UC and CSU campuses',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     // English Courses
     {
@@ -366,7 +378,9 @@ export function generateMockCourses() {
       semester: 'Fall 2024',
       academicYear: '2024-2025',
       transferCredits: true,
-      transferNotes: 'Transfers to all UC and CSU campuses'
+      transferNotes: 'Transfers to all UC and CSU campuses',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     // Business Courses
     {

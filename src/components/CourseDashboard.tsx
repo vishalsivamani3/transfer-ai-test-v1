@@ -8,21 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
-import { 
-  Search, 
-  Filter, 
-  Star, 
-  Clock, 
-  MapPin, 
-  Users, 
+import {
+  Search,
+  Filter,
+  Star,
+  Clock,
+  MapPin,
+  Users,
   BookOpen,
   TrendingUp,
   TrendingDown,
@@ -30,10 +30,10 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react'
-import { 
-  fetchCourses, 
-  getUniqueInstitutions, 
-  getUniqueDepartments, 
+import {
+  fetchCourses,
+  getUniqueInstitutions,
+  getUniqueDepartments,
   getUniqueSemesters,
   fetchProfessorRating,
   updateCourseWithProfessorRating,
@@ -51,26 +51,26 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Filter states
   const [filters, setFilters] = useState<CourseFilters>({
-    institution: studentInstitution || '',
-    department: '',
+    institution: studentInstitution || 'all',
+    department: 'all',
     courseCode: '',
     professorName: '',
-    minRating: undefined,
-    maxDifficulty: undefined,
-    semester: '',
-    academicYear: '',
-    transferCredits: undefined,
-    availableSeats: false
+    minRating: 'any',
+    maxDifficulty: 'any',
+    semester: 'all',
+    academicYear: 'all',
+    transferCredits: 'all',
+    availableSeats: 'all'
   })
-  
+
   // Available filter options
   const [institutions, setInstitutions] = useState<string[]>([])
   const [departments, setDepartments] = useState<string[]>([])
   const [semesters, setSemesters] = useState<string[]>([])
-  
+
   // Search and sort
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState<'courseCode' | 'courseName' | 'professorRating' | 'difficulty' | 'enrolled'>('courseCode')
@@ -126,43 +126,47 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
     }
 
     // Apply filters
-    if (filters.institution) {
+    if (filters.institution && filters.institution !== 'all') {
       filtered = filtered.filter(course => course.institution === filters.institution)
     }
-    if (filters.department) {
+    if (filters.department && filters.department !== 'all') {
       filtered = filtered.filter(course => course.department === filters.department)
     }
     if (filters.courseCode) {
-      filtered = filtered.filter(course => 
+      filtered = filtered.filter(course =>
         course.courseCode.toLowerCase().includes(filters.courseCode!.toLowerCase())
       )
     }
     if (filters.professorName) {
-      filtered = filtered.filter(course => 
+      filtered = filtered.filter(course =>
         course.professorName?.toLowerCase().includes(filters.professorName!.toLowerCase())
       )
     }
-    if (filters.minRating) {
-      filtered = filtered.filter(course => 
-        course.professorRating && course.professorRating >= filters.minRating!
+    if (filters.minRating && filters.minRating !== 'any' && typeof filters.minRating === 'number') {
+      const minRating = filters.minRating as number
+      filtered = filtered.filter(course =>
+        course.professorRating && course.professorRating >= minRating
       )
     }
-    if (filters.maxDifficulty) {
-      filtered = filtered.filter(course => 
-        course.professorDifficulty && course.professorDifficulty <= filters.maxDifficulty!
+    if (filters.maxDifficulty && filters.maxDifficulty !== 'any' && typeof filters.maxDifficulty === 'number') {
+      const maxDifficulty = filters.maxDifficulty as number
+      filtered = filtered.filter(course =>
+        course.professorDifficulty && course.professorDifficulty <= maxDifficulty
       )
     }
-    if (filters.semester) {
+    if (filters.semester && filters.semester !== 'all') {
       filtered = filtered.filter(course => course.semester === filters.semester)
     }
-    if (filters.academicYear) {
+    if (filters.academicYear && filters.academicYear !== 'all') {
       filtered = filtered.filter(course => course.academicYear === filters.academicYear)
     }
-    if (filters.transferCredits !== undefined) {
-      filtered = filtered.filter(course => course.transferCredits === filters.transferCredits)
+    if (filters.transferCredits !== undefined && filters.transferCredits !== 'all' && typeof filters.transferCredits === 'boolean') {
+      const transferCredits = filters.transferCredits as boolean
+      filtered = filtered.filter(course => course.transferCredits === transferCredits)
     }
-    if (filters.availableSeats) {
-      filtered = filtered.filter(course => 
+    if (filters.availableSeats && filters.availableSeats !== 'all' && typeof filters.availableSeats === 'boolean') {
+      const availableSeats = filters.availableSeats as boolean
+      filtered = filtered.filter(course =>
         course.capacity && course.enrolled < course.capacity
       )
     }
@@ -214,16 +218,16 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
   const clearFilters = () => {
     setFilters({
-      institution: studentInstitution || '',
-      department: '',
+      institution: studentInstitution || 'all',
+      department: 'all',
       courseCode: '',
       professorName: '',
-      minRating: undefined,
-      maxDifficulty: undefined,
-      semester: '',
-      academicYear: '',
-      transferCredits: undefined,
-      availableSeats: false
+      minRating: 'any',
+      maxDifficulty: 'any',
+      semester: 'all',
+      academicYear: 'all',
+      transferCredits: 'all',
+      availableSeats: 'all'
     })
     setSearchTerm('')
   }
@@ -242,7 +246,7 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
     try {
       const rating = await fetchProfessorRating(course.professorName, course.institution)
-      
+
       if (rating.rating) {
         // Update the course in the database
         await updateCourseWithProfessorRating(
@@ -254,15 +258,15 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
         )
 
         // Update the course in local state
-        setCourses(prev => prev.map(c => 
-          c.id === course.id 
-            ? { 
-                ...c, 
-                professorRating: rating.rating,
-                professorDifficulty: rating.difficulty,
-                professorWouldTakeAgain: rating.wouldTakeAgain,
-                professorTotalRatings: rating.totalRatings || 0
-              }
+        setCourses(prev => prev.map(c =>
+          c.id === course.id
+            ? {
+              ...c,
+              professorRating: rating.rating,
+              professorDifficulty: rating.difficulty,
+              professorWouldTakeAgain: rating.wouldTakeAgain,
+              professorTotalRatings: rating.totalRatings || 0
+            }
             : c
         ))
       }
@@ -273,8 +277,8 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
   const formatClassTimes = (classTimes: any[] | undefined) => {
     if (!classTimes || classTimes.length === 0) return 'TBA'
-    
-    return classTimes.map(time => 
+
+    return classTimes.map(time =>
       `${time.days} ${time.startTime}-${time.endTime} (${time.type})`
     ).join(', ')
   }
@@ -356,12 +360,12 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="institution">Institution</Label>
-              <Select value={filters.institution} onValueChange={(value) => handleFilterChange('institution', value)}>
+              <Select value={filters.institution || 'all'} onValueChange={(value) => handleFilterChange('institution', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All institutions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All institutions</SelectItem>
+                  <SelectItem value="all">All institutions</SelectItem>
                   {institutions.map(institution => (
                     <SelectItem key={institution} value={institution}>{institution}</SelectItem>
                   ))}
@@ -371,12 +375,12 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
-              <Select value={filters.department} onValueChange={(value) => handleFilterChange('department', value)}>
+              <Select value={filters.department || 'all'} onValueChange={(value) => handleFilterChange('department', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All departments</SelectItem>
+                  <SelectItem value="all">All departments</SelectItem>
                   {departments.map(department => (
                     <SelectItem key={department} value={department}>{department}</SelectItem>
                   ))}
@@ -386,12 +390,12 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
             <div className="space-y-2">
               <Label htmlFor="semester">Semester</Label>
-              <Select value={filters.semester} onValueChange={(value) => handleFilterChange('semester', value)}>
+              <Select value={filters.semester || 'all'} onValueChange={(value) => handleFilterChange('semester', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All semesters" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All semesters</SelectItem>
+                  <SelectItem value="all">All semesters</SelectItem>
                   {semesters.map(semester => (
                     <SelectItem key={semester} value={semester}>{semester}</SelectItem>
                   ))}
@@ -401,12 +405,12 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
             <div className="space-y-2">
               <Label htmlFor="minRating">Min Rating</Label>
-              <Select value={filters.minRating?.toString() || ''} onValueChange={(value) => handleFilterChange('minRating', value ? parseFloat(value) : undefined)}>
+              <Select value={filters.minRating?.toString() || 'any'} onValueChange={(value) => handleFilterChange('minRating', value === 'any' ? 'any' : value ? parseFloat(value) : 'any')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any rating" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any rating</SelectItem>
+                  <SelectItem value="any">Any rating</SelectItem>
                   <SelectItem value="3.0">3.0+</SelectItem>
                   <SelectItem value="3.5">3.5+</SelectItem>
                   <SelectItem value="4.0">4.0+</SelectItem>
@@ -420,12 +424,12 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="maxDifficulty">Max Difficulty</Label>
-              <Select value={filters.maxDifficulty?.toString() || ''} onValueChange={(value) => handleFilterChange('maxDifficulty', value ? parseFloat(value) : undefined)}>
+              <Select value={filters.maxDifficulty?.toString() || 'any'} onValueChange={(value) => handleFilterChange('maxDifficulty', value === 'any' ? 'any' : value ? parseFloat(value) : 'any')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any difficulty</SelectItem>
+                  <SelectItem value="any">Any difficulty</SelectItem>
                   <SelectItem value="2.0">2.0 or less</SelectItem>
                   <SelectItem value="2.5">2.5 or less</SelectItem>
                   <SelectItem value="3.0">3.0 or less</SelectItem>
@@ -436,12 +440,12 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
             <div className="space-y-2">
               <Label htmlFor="transferCredits">Transfer Credits</Label>
-              <Select value={filters.transferCredits?.toString() || ''} onValueChange={(value) => handleFilterChange('transferCredits', value === 'true' ? true : value === 'false' ? false : undefined)}>
+              <Select value={filters.transferCredits?.toString() || 'all'} onValueChange={(value) => handleFilterChange('transferCredits', value === 'true' ? true : value === 'false' ? false : 'all')}>
                 <SelectTrigger>
                   <SelectValue placeholder="All courses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All courses</SelectItem>
+                  <SelectItem value="all">All courses</SelectItem>
                   <SelectItem value="true">Transfer credits only</SelectItem>
                   <SelectItem value="false">Non-transfer courses</SelectItem>
                 </SelectContent>
@@ -450,12 +454,12 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
 
             <div className="space-y-2">
               <Label htmlFor="availableSeats">Availability</Label>
-              <Select value={filters.availableSeats?.toString() || ''} onValueChange={(value) => handleFilterChange('availableSeats', value === 'true')}>
+              <Select value={filters.availableSeats?.toString() || 'all'} onValueChange={(value) => handleFilterChange('availableSeats', value === 'true' ? true : 'all')}>
                 <SelectTrigger>
                   <SelectValue placeholder="All courses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All courses</SelectItem>
+                  <SelectItem value="all">All courses</SelectItem>
                   <SelectItem value="true">Available seats only</SelectItem>
                 </SelectContent>
               </Select>
@@ -514,7 +518,7 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => handleSort('courseCode')}
                 >
@@ -522,13 +526,13 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
                 </TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Professor</TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => handleSort('professorRating')}
                 >
                   Rating
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => handleSort('difficulty')}
                 >
@@ -536,7 +540,7 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
                 </TableHead>
                 <TableHead>Schedule</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => handleSort('enrolled')}
                 >
@@ -608,10 +612,9 @@ export default function CourseDashboard({ studentInstitution, onCourseSelect }: 
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <availability.icon className={`h-4 w-4 ${
-                          availability.status === 'available' ? 'text-green-600' :
-                          availability.status === 'full' ? 'text-red-600' : 'text-gray-400'
-                        }`} />
+                        <availability.icon className={`h-4 w-4 ${availability.status === 'available' ? 'text-green-600' :
+                            availability.status === 'full' ? 'text-red-600' : 'text-gray-400'
+                          }`} />
                         <span className="text-sm">{availability.text}</span>
                       </div>
                     </TableCell>

@@ -81,23 +81,24 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
     }
 
     // Apply filters
-    if (filters.state) {
+    if (filters.state && filters.state !== 'all') {
       filtered = filtered.filter(pathway => pathway.state === filters.state)
     }
-    if (filters.major) {
-      filtered = filtered.filter(pathway => 
+    if (filters.major && filters.major !== 'all') {
+      filtered = filtered.filter(pathway =>
         pathway.major.toLowerCase().includes(filters.major!.toLowerCase())
       )
     }
-    if (filters.guaranteedTransfer !== undefined) {
-      filtered = filtered.filter(pathway => pathway.guaranteedTransfer === filters.guaranteedTransfer)
+    if (filters.guaranteedTransfer !== undefined && filters.guaranteedTransfer !== 'all' && typeof filters.guaranteedTransfer === 'boolean') {
+      const guaranteedTransfer = filters.guaranteedTransfer as boolean
+      filtered = filtered.filter(pathway => pathway.guaranteedTransfer === guaranteedTransfer)
     }
     if (filters.minGPA) {
-      filtered = filtered.filter(pathway => 
+      filtered = filtered.filter(pathway =>
         pathway.minGPA && pathway.minGPA >= filters.minGPA!
       )
     }
-    if (filters.timeline) {
+    if (filters.timeline && filters.timeline !== 'all') {
       filtered = filtered.filter(pathway => pathway.timeline === filters.timeline)
     }
 
@@ -198,7 +199,7 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                       <SelectValue placeholder="All states" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All states</SelectItem>
+                      <SelectItem value="all">All states</SelectItem>
                       {states.map((state) => (
                         <SelectItem key={state} value={state}>
                           {state}
@@ -218,7 +219,7 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                       <SelectValue placeholder="All majors" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All majors</SelectItem>
+                      <SelectItem value="all">All majors</SelectItem>
                       {majors.map((major) => (
                         <SelectItem key={major} value={major}>
                           {major}
@@ -238,7 +239,7 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All types</SelectItem>
+                      <SelectItem value="all">All types</SelectItem>
                       <SelectItem value="true">Guaranteed</SelectItem>
                       <SelectItem value="false">Standard</SelectItem>
                     </SelectContent>
@@ -255,7 +256,7 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                       <SelectValue placeholder="All timelines" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All timelines</SelectItem>
+                      <SelectItem value="all">All timelines</SelectItem>
                       <SelectItem value="1-year">1 Year</SelectItem>
                       <SelectItem value="2-year">2 Years</SelectItem>
                       <SelectItem value="flexible">Flexible</SelectItem>
@@ -352,8 +353,8 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                     </TableCell>
                     <TableCell>
                       <div className="w-20">
-                        <Progress 
-                          value={(pathway.requirementsMet / pathway.totalRequirements) * 100} 
+                        <Progress
+                          value={(pathway.requirementsMet / pathway.totalRequirements) * 100}
                           className="h-2"
                         />
                         <div className="text-xs text-muted-foreground mt-1">
