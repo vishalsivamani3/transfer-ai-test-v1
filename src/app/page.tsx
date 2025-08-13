@@ -40,6 +40,8 @@ import {
     generateCourseRecommendations
 } from '@/lib/utils'
 import { TransferPathwaysTable } from '@/components/TransferPathwaysTable'
+import CourseDashboard from '@/components/CourseDashboard'
+import StudentProfileForm from '@/components/StudentProfileForm'
 
 export default function TransferAI() {
     const [user, setUser] = useState<UserType | null>(null)
@@ -767,8 +769,9 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
 
                 {/* Main Content */}
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-6">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="profile">Profile</TabsTrigger>
                         <TabsTrigger value="courses">Courses</TabsTrigger>
                         <TabsTrigger value="transfer">Transfer Analysis</TabsTrigger>
                         <TabsTrigger value="pathways">Pathways</TabsTrigger>
@@ -779,8 +782,12 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
                         <OverviewTab dashboardData={dashboardData} />
                     </TabsContent>
 
+                    <TabsContent value="profile" className="space-y-6">
+                        <ProfileTab user={user} />
+                    </TabsContent>
+
                     <TabsContent value="courses" className="space-y-6">
-                        <CoursesTab dashboardData={dashboardData} />
+                        <CourseDashboard studentInstitution={user?.user_metadata?.currentCollege} />
                     </TabsContent>
 
                     <TabsContent value="transfer" className="space-y-6">
@@ -878,87 +885,7 @@ function OverviewTab({ dashboardData }: any) {
     )
 }
 
-function CoursesTab({ dashboardData }: any) {
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span>Course Recommendations</span>
-                        <Button size="sm">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Course
-                        </Button>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {dashboardData?.courseRecommendations?.map((course: any, index: number) => (
-                            <div key={index} className="border rounded-lg p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <h3 className="font-semibold">{course.code}: {course.name}</h3>
-                                        <p className="text-sm text-gray-600">
-                                            {course.professor} • {course.credits} credits
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <Badge variant={course.priority === 'High' ? 'default' : 'secondary'}>
-                                            {course.priority} Priority
-                                        </Badge>
-                                        {course.rating && (
-                                            <div className="flex items-center mt-1">
-                                                <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                                                <span className="text-sm">{course.rating}/5.0</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <Button size="sm" className="mr-2">Add to Schedule</Button>
-                                <Button size="sm" variant="outline">View Details</Button>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Completed Courses</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-gray-500 text-sm">
-                            {dashboardData?.profile?.completedCourses?.length || 0} courses completed
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Current Courses</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-gray-500 text-sm">
-                            {dashboardData?.profile?.currentCourses?.length || 0} courses in progress
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Planned Courses</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-gray-500 text-sm">
-                            {dashboardData?.profile?.plannedCourses?.length || 0} courses planned
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    )
-}
 
 function TransferAnalysisTab({ dashboardData }: any) {
     return (
@@ -1072,6 +999,23 @@ function RecommendationsTab({ dashboardData }: any) {
     )
 }
 
+function ProfileTab({ user }: { user: UserType }) {
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Student Profile</h2>
+                    <p className="text-muted-foreground">
+                        Manage your academic profile, goals, and transfer preferences
+                    </p>
+                </div>
+            </div>
+
+            <StudentProfileForm userId={user.id} userEmail={user.email} />
+        </div>
+    )
+}
+
 function TransferPathwaysTab({ user }: { user: UserType }) {
     return (
         <div className="space-y-6">
@@ -1083,7 +1027,7 @@ function TransferPathwaysTab({ user }: { user: UserType }) {
                     </p>
                 </div>
             </div>
-            
+
             <TransferPathwaysTable userId={user.id} />
         </div>
     )

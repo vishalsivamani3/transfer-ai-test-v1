@@ -615,10 +615,10 @@ export async function fetchProfessorRating(professorName: string, institution: s
   try {
     // Mock implementation - in production, this would call the RateMyProfessors API
     // You would need to sign up for their API and implement proper authentication
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500))
-    
+
     // Mock data based on professor name
     const mockRatings: Record<string, any> = {
       'Dr. Sarah Johnson': { rating: 4.2, difficulty: 2.8, wouldTakeAgain: 0.85, totalRatings: 127 },
