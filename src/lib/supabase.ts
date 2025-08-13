@@ -142,48 +142,90 @@ export interface Database {
             courses: {
                 Row: {
                     id: string
-                    user_id: string
-                    code: string
-                    name: string
+                    institution: string
+                    course_code: string
+                    course_name: string
+                    department: string
                     credits: number
-                    grade?: string
-                    semester?: string
-                    year?: number
-                    status: 'completed' | 'in_progress' | 'planned'
-                    professor?: string
-                    rating?: number
-                    transfer_credits?: number
+                    description?: string
+                    prerequisites?: string[]
+                    corequisites?: string[]
+                    professor_name?: string
+                    professor_email?: string
+                    professor_rmp_id?: string
+                    professor_rating?: number
+                    professor_difficulty?: number
+                    professor_would_take_again?: number
+                    professor_total_ratings: number
+                    class_times?: any
+                    location?: string
+                    capacity?: number
+                    enrolled: number
+                    waitlist_count: number
+                    semester: string
+                    academic_year: string
+                    transfer_credits: boolean
+                    transfer_notes?: string
                     created_at: string
+                    updated_at: string
                 }
                 Insert: {
                     id?: string
-                    user_id: string
-                    code: string
-                    name: string
+                    institution: string
+                    course_code: string
+                    course_name: string
+                    department: string
                     credits: number
-                    grade?: string
-                    semester?: string
-                    year?: number
-                    status: 'completed' | 'in_progress' | 'planned'
-                    professor?: string
-                    rating?: number
-                    transfer_credits?: number
+                    description?: string
+                    prerequisites?: string[]
+                    corequisites?: string[]
+                    professor_name?: string
+                    professor_email?: string
+                    professor_rmp_id?: string
+                    professor_rating?: number
+                    professor_difficulty?: number
+                    professor_would_take_again?: number
+                    professor_total_ratings?: number
+                    class_times?: any
+                    location?: string
+                    capacity?: number
+                    enrolled?: number
+                    waitlist_count?: number
+                    semester: string
+                    academic_year: string
+                    transfer_credits?: boolean
+                    transfer_notes?: string
                     created_at?: string
+                    updated_at?: string
                 }
                 Update: {
                     id?: string
-                    user_id?: string
-                    code?: string
-                    name?: string
+                    institution?: string
+                    course_code?: string
+                    course_name?: string
+                    department?: string
                     credits?: number
-                    grade?: string
+                    description?: string
+                    prerequisites?: string[]
+                    corequisites?: string[]
+                    professor_name?: string
+                    professor_email?: string
+                    professor_rmp_id?: string
+                    professor_rating?: number
+                    professor_difficulty?: number
+                    professor_would_take_again?: number
+                    professor_total_ratings?: number
+                    class_times?: any
+                    location?: string
+                    capacity?: number
+                    enrolled?: number
+                    waitlist_count?: number
                     semester?: string
-                    year?: number
-                    status?: 'completed' | 'in_progress' | 'planned'
-                    professor?: string
-                    rating?: number
-                    transfer_credits?: number
+                    academic_year?: string
+                    transfer_credits?: boolean
+                    transfer_notes?: string
                     created_at?: string
+                    updated_at?: string
                 }
             }
             transfer_pathways: {
