@@ -139,6 +139,123 @@ export interface Database {
                     updated_at?: string
                 }
             }
+            student_plans: {
+                Row: {
+                    id: string
+                    user_id: string
+                    plan_name: string
+                    transfer_timeline: '1-year' | '2-year'
+                    target_major?: string
+                    target_universities?: string[]
+                    total_credits_planned: number
+                    total_credits_completed: number
+                    plan_status: 'draft' | 'active' | 'completed'
+                    created_at: string
+                    updated_at: string
+                    is_default: boolean
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    plan_name?: string
+                    transfer_timeline: '1-year' | '2-year'
+                    target_major?: string
+                    target_universities?: string[]
+                    total_credits_planned?: number
+                    total_credits_completed?: number
+                    plan_status?: 'draft' | 'active' | 'completed'
+                    created_at?: string
+                    updated_at?: string
+                    is_default?: boolean
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    plan_name?: string
+                    transfer_timeline?: '1-year' | '2-year'
+                    target_major?: string
+                    target_universities?: string[]
+                    total_credits_planned?: number
+                    total_credits_completed?: number
+                    plan_status?: 'draft' | 'active' | 'completed'
+                    created_at?: string
+                    updated_at?: string
+                    is_default?: boolean
+                }
+            }
+            student_plan_semesters: {
+                Row: {
+                    id: string
+                    plan_id: string
+                    semester_name: string
+                    semester_order: number
+                    academic_year: string
+                    semester_type: 'fall' | 'spring' | 'summer'
+                    total_credits: number
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    plan_id: string
+                    semester_name: string
+                    semester_order: number
+                    academic_year: string
+                    semester_type: 'fall' | 'spring' | 'summer'
+                    total_credits?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    plan_id?: string
+                    semester_name?: string
+                    semester_order?: number
+                    academic_year?: string
+                    semester_type?: 'fall' | 'spring' | 'summer'
+                    total_credits?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
+            student_plan_courses: {
+                Row: {
+                    id: string
+                    plan_id: string
+                    semester_id: string
+                    course_id: string
+                    position_order: number
+                    status: 'planned' | 'enrolled' | 'completed' | 'dropped'
+                    grade?: string
+                    notes?: string
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    plan_id: string
+                    semester_id: string
+                    course_id: string
+                    position_order: number
+                    status?: 'planned' | 'enrolled' | 'completed' | 'dropped'
+                    grade?: string
+                    notes?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    plan_id?: string
+                    semester_id?: string
+                    course_id?: string
+                    position_order?: number
+                    status?: 'planned' | 'enrolled' | 'completed' | 'dropped'
+                    grade?: string
+                    notes?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
             student_courses: {
                 Row: {
                     id: string

@@ -55,6 +55,169 @@ CREATE POLICY "Users can update their own student profile" ON student_profiles
 CREATE POLICY "Users can delete their own student profile" ON student_profiles
     FOR DELETE USING (auth.uid() = user_id);
 
+-- Create student_plans table
+CREATE TABLE IF NOT EXISTS student_plans (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    plan_name TEXT NOT NULL DEFAULT 'My Transfer Plan',
+    transfer_timeline TEXT NOT NULL CHECK (transfer_timeline IN ('1-year', '2-year')),
+    target_major TEXT,
+    target_universities TEXT[],
+    total_credits_planned INTEGER DEFAULT 0,
+    total_credits_completed INTEGER DEFAULT 0,
+    plan_status TEXT NOT NULL DEFAULT 'draft' CHECK (plan_status IN ('draft', 'active', 'completed')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_default BOOLEAN DEFAULT false
+);
+
+-- Create student_plan_semesters table
+CREATE TABLE IF NOT EXISTS student_plan_semesters (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    plan_id UUID NOT NULL REFERENCES student_plans(id) ON DELETE CASCADE,
+    semester_name TEXT NOT NULL, -- e.g., 'Fall 2024', 'Spring 2025'
+    semester_order INTEGER NOT NULL, -- 1, 2, 3, 4 for ordering
+    academic_year TEXT NOT NULL, -- e.g., '2024-2025'
+    semester_type TEXT NOT NULL CHECK (semester_type IN ('fall', 'spring', 'summer')),
+    total_credits INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(plan_id, semester_name)
+);
+
+-- Create student_plan_courses table
+CREATE TABLE IF NOT EXISTS student_plan_courses (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    plan_id UUID NOT NULL REFERENCES student_plans(id) ON DELETE CASCADE,
+    semester_id UUID NOT NULL REFERENCES student_plan_semesters(id) ON DELETE CASCADE,
+    course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    position_order INTEGER NOT NULL, -- For drag-and-drop ordering
+    status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'enrolled', 'completed', 'dropped')),
+    grade TEXT,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(plan_id, semester_id, course_id)
+);
+
+-- Create indexes for student_plans tables
+CREATE INDEX IF NOT EXISTS idx_student_plans_user_id ON student_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_student_plans_timeline ON student_plans(transfer_timeline);
+CREATE INDEX IF NOT EXISTS idx_student_plans_status ON student_plans(plan_status);
+CREATE INDEX IF NOT EXISTS idx_student_plan_semesters_plan_id ON student_plan_semesters(plan_id);
+CREATE INDEX IF NOT EXISTS idx_student_plan_semesters_order ON student_plan_semesters(semester_order);
+CREATE INDEX IF NOT EXISTS idx_student_plan_courses_plan_id ON student_plan_courses(plan_id);
+CREATE INDEX IF NOT EXISTS idx_student_plan_courses_semester_id ON student_plan_courses(semester_id);
+CREATE INDEX IF NOT EXISTS idx_student_plan_courses_position ON student_plan_courses(position_order);
+
+-- Create triggers for student_plans tables
+CREATE TRIGGER update_student_plans_updated_at 
+    BEFORE UPDATE ON student_plans 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_student_plan_semesters_updated_at 
+    BEFORE UPDATE ON student_plan_semesters 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_student_plan_courses_updated_at 
+    BEFORE UPDATE ON student_plan_courses 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable Row Level Security for student_plans tables
+ALTER TABLE student_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE student_plan_semesters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE student_plan_courses ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for student_plans
+CREATE POLICY "Users can view their own plans" ON student_plans
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own plans" ON student_plans
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own plans" ON student_plans
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own plans" ON student_plans
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for student_plan_semesters
+CREATE POLICY "Users can view their own plan semesters" ON student_plan_semesters
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_semesters.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert their own plan semesters" ON student_plan_semesters
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_semesters.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update their own plan semesters" ON student_plan_semesters
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_semesters.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete their own plan semesters" ON student_plan_semesters
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_semesters.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
+-- Create RLS policies for student_plan_courses
+CREATE POLICY "Users can view their own plan courses" ON student_plan_courses
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_courses.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert their own plan courses" ON student_plan_courses
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_courses.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update their own plan courses" ON student_plan_courses
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_courses.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete their own plan courses" ON student_plan_courses
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM student_plans 
+            WHERE student_plans.id = student_plan_courses.plan_id 
+            AND student_plans.user_id = auth.uid()
+        )
+    );
+
 -- Create student_courses table
 CREATE TABLE IF NOT EXISTS student_courses (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

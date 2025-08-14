@@ -370,6 +370,499 @@ export async function getUniqueMajors(): Promise<string[]> {
   }
 }
 
+// Student Plan Management Functions
+
+export interface StudentPlan {
+  id: string
+  userId: string
+  planName: string
+  transferTimeline: '1-year' | '2-year'
+  targetMajor?: string
+  targetUniversities?: string[]
+  totalCreditsPlanned: number
+  totalCreditsCompleted: number
+  planStatus: 'draft' | 'active' | 'completed'
+  createdAt: string
+  updatedAt: string
+  isDefault: boolean
+  semesters?: PlanSemester[]
+}
+
+export interface PlanSemester {
+  id: string
+  planId: string
+  semesterName: string
+  semesterOrder: number
+  academicYear: string
+  semesterType: 'fall' | 'spring' | 'summer'
+  totalCredits: number
+  createdAt: string
+  updatedAt: string
+  courses?: PlanCourse[]
+}
+
+export interface PlanCourse {
+  id: string
+  planId: string
+  semesterId: string
+  courseId: string
+  positionOrder: number
+  status: 'planned' | 'enrolled' | 'completed' | 'dropped'
+  grade?: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
+  course?: Course
+}
+
+export interface PlanCourseWithDetails extends PlanCourse {
+  course: Course
+}
+
+export interface CreatePlanData {
+  planName: string
+  transferTimeline: '1-year' | '2-year'
+  targetMajor?: string
+  targetUniversities?: string[]
+}
+
+/**
+ * Create a new student plan with default semesters
+ */
+export async function createStudentPlan(
+  userId: string,
+  planData: CreatePlanData
+): Promise<StudentPlan | null> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return null
+    }
+
+    // Create the plan
+    const { data: plan, error: planError } = await supabase
+      .from('student_plans')
+      .insert({
+        user_id: userId,
+        plan_name: planData.planName,
+        transfer_timeline: planData.transferTimeline,
+        target_major: planData.targetMajor,
+        target_universities: planData.targetUniversities,
+        is_default: true // Set as default plan
+      })
+      .select()
+      .single()
+
+    if (planError) {
+      console.error('Error creating plan:', planError)
+      return null
+    }
+
+    // Create default semesters based on timeline
+    const currentYear = new Date().getFullYear()
+    const semesters = planData.transferTimeline === '1-year'
+      ? [
+        { name: `Fall ${currentYear}`, order: 1, year: `${currentYear}-${currentYear + 1}`, type: 'fall' },
+        { name: `Spring ${currentYear + 1}`, order: 2, year: `${currentYear}-${currentYear + 1}`, type: 'spring' }
+      ]
+      : [
+        { name: `Fall ${currentYear}`, order: 1, year: `${currentYear}-${currentYear + 1}`, type: 'fall' },
+        { name: `Spring ${currentYear + 1}`, order: 2, year: `${currentYear}-${currentYear + 1}`, type: 'spring' },
+        { name: `Fall ${currentYear + 1}`, order: 3, year: `${currentYear + 1}-${currentYear + 2}`, type: 'fall' },
+        { name: `Spring ${currentYear + 2}`, order: 4, year: `${currentYear + 1}-${currentYear + 2}`, type: 'spring' }
+      ]
+
+    const semesterInserts = semesters.map(sem => ({
+      plan_id: plan.id,
+      semester_name: sem.name,
+      semester_order: sem.order,
+      academic_year: sem.year,
+      semester_type: sem.type
+    }))
+
+    const { error: semesterError } = await supabase
+      .from('student_plan_semesters')
+      .insert(semesterInserts)
+
+    if (semesterError) {
+      console.error('Error creating semesters:', semesterError)
+      return null
+    }
+
+    return {
+      id: plan.id,
+      userId: plan.user_id,
+      planName: plan.plan_name,
+      transferTimeline: plan.transfer_timeline,
+      targetMajor: plan.target_major,
+      targetUniversities: plan.target_universities,
+      totalCreditsPlanned: plan.total_credits_planned,
+      totalCreditsCompleted: plan.total_credits_completed,
+      planStatus: plan.plan_status,
+      createdAt: plan.created_at,
+      updatedAt: plan.updated_at,
+      isDefault: plan.is_default
+    }
+  } catch (error) {
+    console.error('Error in createStudentPlan:', error)
+    return null
+  }
+}
+
+/**
+ * Get all plans for a student
+ */
+export async function getStudentPlans(userId: string): Promise<StudentPlan[]> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return []
+    }
+
+    const { data, error } = await supabase
+      .from('student_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching student plans:', error)
+      return []
+    }
+
+    return data?.map(plan => ({
+      id: plan.id,
+      userId: plan.user_id,
+      planName: plan.plan_name,
+      transferTimeline: plan.transfer_timeline,
+      targetMajor: plan.target_major,
+      targetUniversities: plan.target_universities,
+      totalCreditsPlanned: plan.total_credits_planned,
+      totalCreditsCompleted: plan.total_credits_completed,
+      planStatus: plan.plan_status,
+      createdAt: plan.created_at,
+      updatedAt: plan.updated_at,
+      isDefault: plan.is_default
+    })) || []
+  } catch (error) {
+    console.error('Error in getStudentPlans:', error)
+    return []
+  }
+}
+
+/**
+ * Get a complete plan with semesters and courses
+ */
+export async function getStudentPlanWithDetails(planId: string): Promise<StudentPlan | null> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return null
+    }
+
+    // Get plan details
+    const { data: plan, error: planError } = await supabase
+      .from('student_plans')
+      .select('*')
+      .eq('id', planId)
+      .single()
+
+    if (planError) {
+      console.error('Error fetching plan:', planError)
+      return null
+    }
+
+    // Get semesters with courses
+    const { data: semesters, error: semesterError } = await supabase
+      .from('student_plan_semesters')
+      .select(`
+        *,
+        student_plan_courses (
+          *,
+          course:courses(*)
+        )
+      `)
+      .eq('plan_id', planId)
+      .order('semester_order', { ascending: true })
+
+    if (semesterError) {
+      console.error('Error fetching semesters:', semesterError)
+      return null
+    }
+
+    const planWithDetails: StudentPlan = {
+      id: plan.id,
+      userId: plan.user_id,
+      planName: plan.plan_name,
+      transferTimeline: plan.transfer_timeline,
+      targetMajor: plan.target_major,
+      targetUniversities: plan.target_universities,
+      totalCreditsPlanned: plan.total_credits_planned,
+      totalCreditsCompleted: plan.total_credits_completed,
+      planStatus: plan.plan_status,
+      createdAt: plan.created_at,
+      updatedAt: plan.updated_at,
+      isDefault: plan.is_default,
+      semesters: semesters?.map(semester => ({
+        id: semester.id,
+        planId: semester.plan_id,
+        semesterName: semester.semester_name,
+        semesterOrder: semester.semester_order,
+        academicYear: semester.academic_year,
+        semesterType: semester.semester_type,
+        totalCredits: semester.total_credits,
+        createdAt: semester.created_at,
+        updatedAt: semester.updated_at,
+        courses: semester.student_plan_courses?.map((course: any) => ({
+          id: course.id,
+          planId: course.plan_id,
+          semesterId: course.semester_id,
+          courseId: course.course_id,
+          positionOrder: course.position_order,
+          status: course.status,
+          grade: course.grade,
+          notes: course.notes,
+          createdAt: course.created_at,
+          updatedAt: course.updated_at,
+          course: course.course ? {
+            id: course.course.id,
+            institution: course.course.institution,
+            courseCode: course.course.course_code,
+            courseName: course.course.course_name,
+            department: course.course.department,
+            credits: course.course.credits,
+            description: course.course.description,
+            prerequisites: course.course.prerequisites,
+            corequisites: course.course.corequisites,
+            professorName: course.course.professor_name,
+            professorEmail: course.course.professor_email,
+            professorRmpId: course.course.professor_rmp_id,
+            professorRating: course.course.professor_rating,
+            professorDifficulty: course.course.professor_difficulty,
+            professorWouldTakeAgain: course.course.professor_would_take_again,
+            professorTotalRatings: course.course.professor_total_ratings,
+            classTimes: course.course.class_times ? JSON.parse(course.course.class_times) : [],
+            location: course.course.location,
+            capacity: course.course.capacity,
+            enrolled: course.course.enrolled,
+            waitlistCount: course.course.waitlist_count,
+            semester: course.course.semester,
+            academicYear: course.course.academic_year,
+            transferCredits: course.course.transfer_credits,
+            transferNotes: course.course.transfer_notes,
+            created_at: course.course.created_at,
+            updated_at: course.course.updated_at
+          } : undefined
+        })).sort((a: any, b: any) => a.positionOrder - b.positionOrder) || []
+      })) || []
+    }
+
+    return planWithDetails
+  } catch (error) {
+    console.error('Error in getStudentPlanWithDetails:', error)
+    return null
+  }
+}
+
+/**
+ * Add a course to a semester in a plan
+ */
+export async function addCourseToPlan(
+  planId: string,
+  semesterId: string,
+  courseId: string,
+  positionOrder: number
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true
+    }
+
+    const { error } = await supabase
+      .from('student_plan_courses')
+      .insert({
+        plan_id: planId,
+        semester_id: semesterId,
+        course_id: courseId,
+        position_order: positionOrder,
+        status: 'planned'
+      })
+
+    if (error) {
+      console.error('Error adding course to plan:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in addCourseToPlan:', error)
+    return false
+  }
+}
+
+/**
+ * Remove a course from a plan
+ */
+export async function removeCourseFromPlan(
+  planId: string,
+  semesterId: string,
+  courseId: string
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true
+    }
+
+    const { error } = await supabase
+      .from('student_plan_courses')
+      .delete()
+      .eq('plan_id', planId)
+      .eq('semester_id', semesterId)
+      .eq('course_id', courseId)
+
+    if (error) {
+      console.error('Error removing course from plan:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in removeCourseFromPlan:', error)
+    return false
+  }
+}
+
+/**
+ * Update course position in plan (for drag-and-drop)
+ */
+export async function updateCoursePosition(
+  planId: string,
+  semesterId: string,
+  courseId: string,
+  newPositionOrder: number
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true
+    }
+
+    const { error } = await supabase
+      .from('student_plan_courses')
+      .update({ position_order: newPositionOrder })
+      .eq('plan_id', planId)
+      .eq('semester_id', semesterId)
+      .eq('course_id', courseId)
+
+    if (error) {
+      console.error('Error updating course position:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in updateCoursePosition:', error)
+    return false
+  }
+}
+
+/**
+ * Move course between semesters
+ */
+export async function moveCourseBetweenSemesters(
+  planId: string,
+  courseId: string,
+  fromSemesterId: string,
+  toSemesterId: string,
+  newPositionOrder: number
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true
+    }
+
+    const { error } = await supabase
+      .from('student_plan_courses')
+      .update({
+        semester_id: toSemesterId,
+        position_order: newPositionOrder
+      })
+      .eq('plan_id', planId)
+      .eq('semester_id', fromSemesterId)
+      .eq('course_id', courseId)
+
+    if (error) {
+      console.error('Error moving course between semesters:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in moveCourseBetweenSemesters:', error)
+    return false
+  }
+}
+
+/**
+ * Update plan status
+ */
+export async function updatePlanStatus(
+  planId: string,
+  status: 'draft' | 'active' | 'completed'
+): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true
+    }
+
+    const { error } = await supabase
+      .from('student_plans')
+      .update({ plan_status: status })
+      .eq('id', planId)
+
+    if (error) {
+      console.error('Error updating plan status:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in updatePlanStatus:', error)
+    return false
+  }
+}
+
+/**
+ * Delete a plan and all its semesters and courses
+ */
+export async function deleteStudentPlan(planId: string): Promise<boolean> {
+  try {
+    if (!isSupabaseConfigured()) {
+      console.log('Supabase not configured, using mock data')
+      return true
+    }
+
+    const { error } = await supabase
+      .from('student_plans')
+      .delete()
+      .eq('id', planId)
+
+    if (error) {
+      console.error('Error deleting plan:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in deleteStudentPlan:', error)
+    return false
+  }
+}
+
 // Student Course Selection Functions
 
 export interface StudentCourse {

@@ -43,6 +43,7 @@ import { TransferPathwaysTable } from '@/components/TransferPathwaysTable'
 import CourseDashboard from '@/components/CourseDashboard'
 import StudentProfileForm from '@/components/StudentProfileForm'
 import SelectedCoursesTab from '@/components/SelectedCoursesTab'
+import SemesterPlanner from '@/components/SemesterPlanner'
 
 export default function TransferAI() {
     const [user, setUser] = useState<UserType | null>(null)
@@ -806,11 +807,12 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
 
                 {/* Main Content */}
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-7">
+                    <TabsList className="grid w-full grid-cols-8">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
                         <TabsTrigger value="profile">Profile</TabsTrigger>
                         <TabsTrigger value="courses">Courses</TabsTrigger>
                         <TabsTrigger value="selected">Selected</TabsTrigger>
+                        <TabsTrigger value="planner">Planner</TabsTrigger>
                         <TabsTrigger value="transfer">Transfer Analysis</TabsTrigger>
                         <TabsTrigger value="pathways">Pathways</TabsTrigger>
                         <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
@@ -837,6 +839,16 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
                         ) : (
                             <div className="text-center py-12">
                                 <p className="text-gray-600">Please log in to view your selected courses.</p>
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="planner" className="space-y-6">
+                        {user?.id ? (
+                            <SemesterPlanner userId={user.id} />
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-gray-600">Please log in to access the semester planner.</p>
                             </div>
                         )}
                     </TabsContent>
