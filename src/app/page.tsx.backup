@@ -44,8 +44,6 @@ import CourseDashboard from '@/components/CourseDashboard'
 import StudentProfileForm from '@/components/StudentProfileForm'
 import SelectedCoursesTab from '@/components/SelectedCoursesTab'
 import SemesterPlanner from '@/components/SemesterPlanner'
-import DashboardLayout from '@/components/DashboardLayout'
-import DashboardCards from '@/components/DashboardCards'
 
 export default function TransferAI() {
     const [user, setUser] = useState<UserType | null>(null)
@@ -53,7 +51,6 @@ export default function TransferAI() {
     const [currentView, setCurrentView] = useState<'login' | 'signup' | 'onboarding' | 'dashboard' | 'docs'>('login')
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
     const [error, setError] = useState('')
-    const [activeTab, setActiveTab] = useState('overview')
 
     useEffect(() => {
         console.log('TransferAI component mounted')
@@ -718,69 +715,158 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
     const [activeTab, setActiveTab] = useState('overview')
 
     return (
-        <DashboardLayout
-            user={user}
-            onLogout={onLogout}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-        >
-            {/* Dashboard Cards - Only show on overview tab */}
-            {activeTab === 'overview' && (
-                <DashboardCards
-                    user={user}
-                    dashboardData={dashboardData}
-                    className="mb-8"
-                />
-            )}
-
-            {/* Tab Content */}
-            {activeTab === 'overview' && (
-                <OverviewTab dashboardData={dashboardData} />
-            )}
-
-            {activeTab === 'profile' && (
-                <ProfileTab user={user} />
-            )}
-
-            {activeTab === 'courses' && (
-                <CourseDashboard
-                    studentInstitution={user?.user_metadata?.currentCollege}
-                    userId={user?.id}
-                />
-            )}
-
-            {activeTab === 'selected' && (
-                user?.id ? (
-                    <SelectedCoursesTab userId={user.id} />
-                ) : (
-                    <div className="text-center py-12">
-                        <p className="text-gray-600">Please log in to view your selected courses.</p>
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-white shadow-sm border-b">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        <div className="flex items-center">
+                            <GraduationCap className="h-8 w-8 text-blue-600 mr-2" />
+                            <span className="text-2xl font-bold text-blue-600">Transfer.ai</span>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentView('docs')}
+                                size="sm"
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Documentation
+                            </Button>
+                            <span className="text-gray-700">
+                                Welcome, {dashboardData?.profile?.firstName}!
+                            </span>
+                            <Button variant="outline" onClick={onLogout}>
+                                <User className="h-4 w-4 mr-2" />
+                                Logout
+                            </Button>
+                        </div>
                     </div>
-                )
-            )}
+                </div>
+            </div>
 
-            {activeTab === 'planner' && (
-                user?.id ? (
-                    <SemesterPlanner userId={user.id} />
-                ) : (
-                    <div className="text-center py-12">
-                        <p className="text-gray-600">Please log in to access the semester planner.</p>
-                    </div>
-                )
-            )}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Progress Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <BookOpen className="h-8 w-8 text-blue-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Credits Completed</p>
+                                    <p className="text-2xl font-bold">
+                                        {dashboardData?.progressMetrics?.creditsCompleted || 0}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            {activeTab === 'transfer' && (
-                <TransferAnalysisTab dashboardData={dashboardData} />
-            )}
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <Target className="h-8 w-8 text-green-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Current GPA</p>
+                                    <p className="text-2xl font-bold">
+                                        {formatGPA(dashboardData?.progressMetrics?.gpa || 0)}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            {activeTab === 'pathways' && (
-                <TransferPathwaysTab user={user} />
-            )}
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <Clock className="h-8 w-8 text-orange-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Courses in Progress</p>
+                                    <p className="text-2xl font-bold">
+                                        {dashboardData?.progressMetrics?.coursesInProgress || 0}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-            {activeTab === 'recommendations' && (
-                <RecommendationsTab dashboardData={dashboardData} />
-            )}
-        </DashboardLayout>
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center">
+                                <School className="h-8 w-8 text-purple-600" />
+                                <div className="ml-4">
+                                    <p className="text-sm text-gray-600">Transfer Pathways</p>
+                                    <p className="text-2xl font-bold">
+                                        {dashboardData?.progressMetrics?.transferPathwaysAnalyzed || 0}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Main Content */}
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-full grid-cols-8">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="profile">Profile</TabsTrigger>
+                        <TabsTrigger value="courses">Courses</TabsTrigger>
+                        <TabsTrigger value="selected">Selected</TabsTrigger>
+                        <TabsTrigger value="planner">Planner</TabsTrigger>
+                        <TabsTrigger value="transfer">Transfer Analysis</TabsTrigger>
+                        <TabsTrigger value="pathways">Pathways</TabsTrigger>
+                        <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview" className="space-y-6">
+                        <OverviewTab dashboardData={dashboardData} />
+                    </TabsContent>
+
+                    <TabsContent value="profile" className="space-y-6">
+                        <ProfileTab user={user} />
+                    </TabsContent>
+
+                    <TabsContent value="courses" className="space-y-6">
+                        <CourseDashboard
+                            studentInstitution={user?.user_metadata?.currentCollege}
+                            userId={user?.id}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="selected" className="space-y-6">
+                        {user?.id ? (
+                            <SelectedCoursesTab userId={user.id} />
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-gray-600">Please log in to view your selected courses.</p>
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="planner" className="space-y-6">
+                        {user?.id ? (
+                            <SemesterPlanner userId={user.id} />
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-gray-600">Please log in to access the semester planner.</p>
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="transfer" className="space-y-6">
+                        <TransferAnalysisTab dashboardData={dashboardData} />
+                    </TabsContent>
+
+                    <TabsContent value="pathways" className="space-y-6">
+                        <TransferPathwaysTab user={user} />
+                    </TabsContent>
+
+                    <TabsContent value="recommendations" className="space-y-6">
+                        <RecommendationsTab dashboardData={dashboardData} />
+                    </TabsContent>
+                </Tabs>
+            </div>
+        </div>
     )
 }
 
