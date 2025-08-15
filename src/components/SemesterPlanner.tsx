@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { 
+import {
   BookOpen,
   Calendar,
   Target,
@@ -135,7 +135,10 @@ export default function SemesterPlanner({ userId }: SemesterPlannerProps) {
 
   const handleCreatePlan = async () => {
     try {
+      console.log('Creating plan with data:', { userId, newPlanData })
       const newPlan = await createStudentPlan(userId, newPlanData)
+      console.log('Create plan result:', newPlan)
+
       if (newPlan) {
         const planWithDetails = await getStudentPlanWithDetails(newPlan.id)
         setPlans(prev => [newPlan, ...prev])
@@ -143,11 +146,14 @@ export default function SemesterPlanner({ userId }: SemesterPlannerProps) {
         setShowCreatePlan(false)
         toast.success('Plan created successfully!')
       } else {
+        console.error('createStudentPlan returned null')
         setError('Failed to create plan')
+        toast.error('Failed to create plan. Please try again.')
       }
     } catch (error) {
       console.error('Error creating plan:', error)
       setError('Failed to create plan')
+      toast.error('Error creating plan. Check console for details.')
     }
   }
 
@@ -174,7 +180,7 @@ export default function SemesterPlanner({ userId }: SemesterPlannerProps) {
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event
-    
+
     if (!over) return
 
     const activeId = active.id as string
@@ -395,7 +401,7 @@ export default function SemesterPlanner({ userId }: SemesterPlannerProps) {
                     <Label htmlFor="timeline">Transfer Timeline</Label>
                     <Select
                       value={newPlanData.transferTimeline}
-                      onValueChange={(value: '1-year' | '2-year') => 
+                      onValueChange={(value: '1-year' | '2-year') =>
                         setNewPlanData({ ...newPlanData, transferTimeline: value })
                       }
                     >
@@ -448,14 +454,22 @@ export default function SemesterPlanner({ userId }: SemesterPlannerProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {currentPlan && (
-                <Badge variant={currentPlan.planStatus === 'active' ? 'default' : 'secondary'}>
-                  {currentPlan.planStatus}
-                </Badge>
-              )}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Mock Data Notice */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <AlertCircle className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>Demo Mode:</strong> Using mock data for testing. All plans and courses are stored in memory and will reset when you refresh the page.
+        </AlertDescription>
+      </Alert>
+      {currentPlan && (
+        <Badge variant={currentPlan.planStatus === 'active' ? 'default' : 'secondary'}>
+          {currentPlan.planStatus}
+        </Badge>
       )}
 
       {/* Error Display */}

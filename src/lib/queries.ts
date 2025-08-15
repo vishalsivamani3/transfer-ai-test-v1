@@ -434,9 +434,11 @@ export async function createStudentPlan(
   planData: CreatePlanData
 ): Promise<StudentPlan | null> {
   try {
+    console.log('createStudentPlan called with:', { userId, planData })
+
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      return null
+      console.log('Using mock data for createStudentPlan')
+      return createMockStudentPlan(userId, planData)
     }
 
     // Create the plan
@@ -515,8 +517,8 @@ export async function createStudentPlan(
 export async function getStudentPlans(userId: string): Promise<StudentPlan[]> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      return []
+      console.log('Using mock data for getStudentPlans')
+      return getMockStudentPlans(userId)
     }
 
     const { data, error } = await supabase
@@ -556,8 +558,8 @@ export async function getStudentPlans(userId: string): Promise<StudentPlan[]> {
 export async function getStudentPlanWithDetails(planId: string): Promise<StudentPlan | null> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      return null
+      console.log('Using mock data for getStudentPlanWithDetails')
+      return getMockStudentPlanWithDetails(planId)
     }
 
     // Get plan details
@@ -675,8 +677,8 @@ export async function addCourseToPlan(
 ): Promise<boolean> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      return true
+      console.log('Using mock data for addCourseToPlan')
+      return addMockCourseToPlan(planId, semesterId, courseId)
     }
 
     const { error } = await supabase
@@ -711,8 +713,8 @@ export async function removeCourseFromPlan(
 ): Promise<boolean> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      return true
+      console.log('Using mock data for removeCourseFromPlan')
+      return removeMockCourseFromPlan(planId, semesterId, courseId)
     }
 
     const { error } = await supabase
@@ -1448,6 +1450,287 @@ export async function updateCourseWithProfessorRating(
     return true
   } catch (error) {
     console.error('Error in updateCourseWithProfessorRating:', error)
+    return false
+  }
+}
+
+// ============================================================================
+// MOCK DATA FUNCTIONS - These can be easily swapped out when Supabase is ready
+// ============================================================================
+
+// In-memory storage for mock data
+let mockPlans: StudentPlan[] = []
+let mockPlanSemesters: PlanSemester[] = []
+let mockPlanCourses: PlanCourse[] = []
+
+/**
+ * Create a mock student plan with default semesters
+ */
+function createMockStudentPlan(userId: string, planData: CreatePlanData): StudentPlan {
+  const planId = `mock-plan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const currentYear = new Date().getFullYear()
+
+  // Create the plan
+  const plan: StudentPlan = {
+    id: planId,
+    userId,
+    planName: planData.planName,
+    transferTimeline: planData.transferTimeline,
+    targetMajor: planData.targetMajor,
+    targetUniversities: planData.targetUniversities,
+    totalCreditsPlanned: 0,
+    totalCreditsCompleted: 0,
+    planStatus: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isDefault: true,
+    semesters: []
+  }
+
+  // Create default semesters
+  const semesters = planData.transferTimeline === '1-year'
+    ? [
+      { name: `Fall ${currentYear}`, order: 1, year: `${currentYear}-${currentYear + 1}`, type: 'fall' },
+      { name: `Spring ${currentYear + 1}`, order: 2, year: `${currentYear}-${currentYear + 1}`, type: 'spring' }
+    ]
+    : [
+      { name: `Fall ${currentYear}`, order: 1, year: `${currentYear}-${currentYear + 1}`, type: 'fall' },
+      { name: `Spring ${currentYear + 1}`, order: 2, year: `${currentYear}-${currentYear + 1}`, type: 'spring' },
+      { name: `Fall ${currentYear + 1}`, order: 3, year: `${currentYear + 1}-${currentYear + 2}`, type: 'fall' },
+      { name: `Spring ${currentYear + 2}`, order: 4, year: `${currentYear + 1}-${currentYear + 2}`, type: 'spring' }
+    ]
+
+  const mockSemesters: PlanSemester[] = semesters.map(sem => ({
+    id: `mock-semester-${planId}-${sem.order}`,
+    planId,
+    semesterName: sem.name,
+    semesterOrder: sem.order,
+    academicYear: sem.year,
+    semesterType: sem.type as 'fall' | 'spring' | 'summer',
+    totalCredits: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    courses: []
+  }))
+
+  // Store in mock data
+  mockPlans.push(plan)
+  mockPlanSemesters.push(...mockSemesters)
+
+  // Return plan with semesters
+  return {
+    ...plan,
+    semesters: mockSemesters
+  }
+}
+
+/**
+ * Get mock student plans
+ */
+function getMockStudentPlans(userId: string): StudentPlan[] {
+  return mockPlans.filter(plan => plan.userId === userId)
+}
+
+/**
+ * Get mock student plan with details
+ */
+function getMockStudentPlanWithDetails(planId: string): StudentPlan | null {
+  const plan = mockPlans.find(p => p.id === planId)
+  if (!plan) return null
+
+  const semesters = mockPlanSemesters
+    .filter(sem => sem.planId === planId)
+    .map(semester => {
+      const courses = mockPlanCourses
+        .filter(course => course.semesterId === semester.id)
+        .map(course => ({
+          ...course,
+          course: {
+            id: course.courseId,
+            courseCode: `MOCK-${course.courseId}`,
+            courseName: `Mock Course ${course.courseId}`,
+            credits: 3,
+            semester: 'fall',
+            professor: 'Mock Professor',
+            professorRating: 4.0,
+            professorDifficulty: 3.0,
+            professorWouldTakeAgain: 0.8,
+            professorTotalRatings: 100,
+            classTimes: [{ days: 'MWF', startTime: '10:00', endTime: '11:15', type: 'lecture' }],
+            location: 'Mock Hall 101',
+            availableSeats: 25,
+            totalSeats: 30,
+            description: 'Mock course description',
+            prerequisites: [],
+            institution: 'Mock Community College',
+            department: 'Mock Department',
+            enrolled: 25,
+            waitlistCount: 0,
+            academicYear: '2024-2025',
+            transferCredits: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        }))
+        .sort((a, b) => a.positionOrder - b.positionOrder)
+
+      return {
+        ...semester,
+        courses,
+        totalCredits: courses.reduce((sum, course) => sum + (course.course?.credits || 0), 0)
+      }
+    })
+    .sort((a, b) => a.semesterOrder - b.semesterOrder)
+
+  return {
+    ...plan,
+    semesters,
+    totalCreditsPlanned: semesters.reduce((sum, sem) => sum + sem.totalCredits, 0)
+  }
+}
+
+/**
+ * Add course to mock plan
+ */
+function addMockCourseToPlan(planId: string, semesterId: string, courseId: string): boolean {
+  try {
+    const existingCourse = mockPlanCourses.find(
+      course => course.planId === planId && course.semesterId === semesterId && course.courseId === courseId
+    )
+
+    if (existingCourse) {
+      console.log('Course already exists in this semester')
+      return false
+    }
+
+    const maxPosition = Math.max(
+      0,
+      ...mockPlanCourses
+        .filter(course => course.semesterId === semesterId)
+        .map(course => course.positionOrder)
+    )
+
+    const newCourse: PlanCourse = {
+      id: `mock-plan-course-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      planId,
+      semesterId,
+      courseId,
+      positionOrder: maxPosition + 1,
+      status: 'planned',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    mockPlanCourses.push(newCourse)
+    return true
+  } catch (error) {
+    console.error('Error adding mock course to plan:', error)
+    return false
+  }
+}
+
+/**
+ * Remove course from mock plan
+ */
+function removeMockCourseFromPlan(planId: string, semesterId: string, courseId: string): boolean {
+  try {
+    const index = mockPlanCourses.findIndex(
+      course => course.planId === planId && course.semesterId === semesterId && course.courseId === courseId
+    )
+
+    if (index === -1) return false
+
+    mockPlanCourses.splice(index, 1)
+    return true
+  } catch (error) {
+    console.error('Error removing mock course from plan:', error)
+    return false
+  }
+}
+
+/**
+ * Update mock course position
+ */
+function updateMockCoursePosition(planId: string, semesterId: string, courseId: string, newPosition: number): boolean {
+  try {
+    const course = mockPlanCourses.find(
+      course => course.planId === planId && course.semesterId === semesterId && course.courseId === courseId
+    )
+
+    if (!course) return false
+
+    course.positionOrder = newPosition
+    course.updatedAt = new Date().toISOString()
+    return true
+  } catch (error) {
+    console.error('Error updating mock course position:', error)
+    return false
+  }
+}
+
+/**
+ * Move course between mock semesters
+ */
+function moveMockCourseBetweenSemesters(
+  planId: string,
+  courseId: string,
+  fromSemesterId: string,
+  toSemesterId: string,
+  newPosition: number
+): boolean {
+  try {
+    const course = mockPlanCourses.find(
+      course => course.planId === planId && course.semesterId === fromSemesterId && course.courseId === courseId
+    )
+
+    if (!course) return false
+
+    course.semesterId = toSemesterId
+    course.positionOrder = newPosition
+    course.updatedAt = new Date().toISOString()
+    return true
+  } catch (error) {
+    console.error('Error moving mock course between semesters:', error)
+    return false
+  }
+}
+
+/**
+ * Update mock plan status
+ */
+function updateMockPlanStatus(planId: string, status: 'draft' | 'active' | 'completed'): boolean {
+  try {
+    const plan = mockPlans.find(p => p.id === planId)
+    if (!plan) return false
+
+    plan.planStatus = status
+    plan.updatedAt = new Date().toISOString()
+    return true
+  } catch (error) {
+    console.error('Error updating mock plan status:', error)
+    return false
+  }
+}
+
+/**
+ * Delete mock student plan
+ */
+function deleteMockStudentPlan(planId: string): boolean {
+  try {
+    // Remove plan
+    const planIndex = mockPlans.findIndex(p => p.id === planId)
+    if (planIndex === -1) return false
+    mockPlans.splice(planIndex, 1)
+
+    // Remove associated semesters
+    mockPlanSemesters = mockPlanSemesters.filter(sem => sem.planId !== planId)
+
+    // Remove associated courses
+    mockPlanCourses = mockPlanCourses.filter(course => course.planId !== planId)
+
+    return true
+  } catch (error) {
+    console.error('Error deleting mock student plan:', error)
     return false
   }
 } 
