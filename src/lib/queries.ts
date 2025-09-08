@@ -1,6 +1,16 @@
 import { supabase, isSupabaseConfigured } from './supabase'
 import { TransferPathway } from '@/types'
 import { generateMockTransferPathways, generateMockCourses } from './utils'
+import {
+  courses as assistCourses,
+  colleges as assistColleges,
+  transferAgreements as assistTransferAgreements,
+  getCoursesByCollege,
+  searchCourses,
+  getTransferAgreementsByCollege,
+  getTransferAgreementsByCourse,
+  getCollegesByType
+} from '@/data/assist/utils'
 
 export interface TransferPathwayFilters {
   state?: string
@@ -1191,13 +1201,87 @@ export interface CourseFilters {
 }
 
 /**
+ * Fetch courses from Assist data
+ */
+async function fetchAssistCourses(filters: CourseFilters = {}): Promise<Course[]> {
+  try {
+    console.log('Fetching Assist courses with filters:', filters)
+
+    let filteredCourses = assistCourses
+
+    // Apply filters
+    if (filters.institution) {
+      // Find college by name or code
+      const college = assistColleges.find(c =>
+        c.name.toLowerCase().includes(filters.institution!.toLowerCase()) ||
+        c.code.toLowerCase().includes(filters.institution!.toLowerCase())
+      )
+      if (college) {
+        filteredCourses = getCoursesByCollege(college.id)
+      } else {
+        filteredCourses = []
+      }
+    }
+
+    if (filters.department) {
+      filteredCourses = filteredCourses.filter(course =>
+        course.department?.toLowerCase().includes(filters.department!.toLowerCase())
+      )
+    }
+
+    if (filters.courseCode) {
+      filteredCourses = filteredCourses.filter(course =>
+        course.courseCode.toLowerCase().includes(filters.courseCode!.toLowerCase())
+      )
+    }
+
+    // Convert Assist Course format to expected Course format
+    return filteredCourses.map(assistCourse => {
+      const college = assistColleges.find(c => c.id === assistCourse.collegeId)
+      return {
+        id: assistCourse.id.toString(),
+        institution: college?.name || 'Unknown College',
+        courseCode: assistCourse.courseCode,
+        courseName: assistCourse.courseTitle,
+        department: assistCourse.department || 'General',
+        credits: assistCourse.units || 3,
+        description: assistCourse.description || '',
+        prerequisites: [],
+        corequisites: [],
+        professorName: '',
+        professorEmail: '',
+        professorRmpId: '',
+        professorRating: 0,
+        professorDifficulty: 0,
+        professorWouldTakeAgain: 0,
+        professorTotalRatings: 0,
+        classTimes: [],
+        location: '',
+        capacity: 0,
+        enrolled: 0,
+        waitlistCount: 0,
+        semester: 'Fall',
+        academicYear: '2024-2025',
+        transferCredits: true,
+        transferNotes: '',
+        created_at: assistCourse.createdAt || new Date().toISOString(),
+        updated_at: assistCourse.updatedAt || new Date().toISOString()
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching Assist courses:', error)
+    return []
+  }
+}
+
+/**
  * Fetch courses with filtering options
  */
 export async function fetchCourses(filters: CourseFilters = {}): Promise<Course[]> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      return generateMockCourses()
+      console.log('Supabase not configured, using Assist data')
+      return fetchAssistCourses(filters)
     }
 
     let query = supabase
@@ -1286,9 +1370,8 @@ export async function fetchCourses(filters: CourseFilters = {}): Promise<Course[
 export async function getUniqueInstitutions(): Promise<string[]> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      const mockCourses = generateMockCourses()
-      const institutions = Array.from(new Set(mockCourses.map(course => course.institution)))
+      console.log('Supabase not configured, using Assist data')
+      const institutions = assistColleges.map(college => college.name)
       return institutions.sort()
     }
 
@@ -1316,9 +1399,8 @@ export async function getUniqueInstitutions(): Promise<string[]> {
 export async function getUniqueDepartments(): Promise<string[]> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      const mockCourses = generateMockCourses()
-      const departments = Array.from(new Set(mockCourses.map(course => course.department)))
+      console.log('Supabase not configured, using Assist data')
+      const departments = Array.from(new Set(assistCourses.map(course => course.department).filter(Boolean) as string[]))
       return departments.sort()
     }
 
@@ -1346,10 +1428,9 @@ export async function getUniqueDepartments(): Promise<string[]> {
 export async function getUniqueSemesters(): Promise<string[]> {
   try {
     if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured, using mock data')
-      const mockCourses = generateMockCourses()
-      const semesters = Array.from(new Set(mockCourses.map(course => course.semester)))
-      return semesters.sort()
+      console.log('Supabase not configured, using Assist data')
+      // Return common semesters for California colleges
+      return ['Fall', 'Spring', 'Summer', 'Winter']
     }
 
     const { data, error } = await supabase
@@ -1732,5 +1813,224 @@ function deleteMockStudentPlan(planId: string): boolean {
   } catch (error) {
     console.error('Error deleting mock student plan:', error)
     return false
+  }
+}
+
+// ===== ASSIST DATA SEARCH FUNCTIONS =====
+
+/**
+ * Search for colleges by name, code, or type
+ */
+export async function searchColleges(query: string, type?: 'UC' | 'CSU' | 'CCC' | 'AICCU'): Promise<any[]> {
+  try {
+    let colleges = assistColleges
+
+    // Filter by type if specified
+    if (type) {
+      colleges = getCollegesByType(type)
+    }
+
+    // Search by name or code
+    if (query) {
+      const searchTerm = query.toLowerCase()
+      colleges = colleges.filter(college =>
+        college.name.toLowerCase().includes(searchTerm) ||
+        college.code.toLowerCase().includes(searchTerm) ||
+        (college.city && college.city.toLowerCase().includes(searchTerm))
+      )
+    }
+
+    return colleges.map(college => ({
+      id: college.id,
+      name: college.name,
+      code: college.code,
+      type: college.type,
+      city: college.city,
+      state: college.state,
+      website: college.website
+    }))
+  } catch (error) {
+    console.error('Error searching colleges:', error)
+    return []
+  }
+}
+
+/**
+ * Search for courses with advanced filtering
+ */
+export async function searchCoursesAdvanced(filters: {
+  query?: string
+  collegeId?: number
+  collegeName?: string
+  department?: string
+  courseCode?: string
+  transferType?: string
+}): Promise<any[]> {
+  try {
+    let courses = assistCourses
+
+    // Filter by college
+    if (filters.collegeId) {
+      courses = getCoursesByCollege(filters.collegeId)
+    } else if (filters.collegeName) {
+      const college = assistColleges.find(c =>
+        c.name.toLowerCase().includes(filters.collegeName!.toLowerCase()) ||
+        c.code.toLowerCase().includes(filters.collegeName!.toLowerCase())
+      )
+      if (college) {
+        courses = getCoursesByCollege(college.id)
+      } else {
+        courses = []
+      }
+    }
+
+    // Filter by department
+    if (filters.department) {
+      courses = courses.filter(course =>
+        course.department?.toLowerCase().includes(filters.department!.toLowerCase())
+      )
+    }
+
+    // Filter by course code
+    if (filters.courseCode) {
+      courses = courses.filter(course =>
+        course.courseCode.toLowerCase().includes(filters.courseCode!.toLowerCase())
+      )
+    }
+
+    // Filter by transfer type
+    if (filters.transferType) {
+      const transferAgreements = assistTransferAgreements.filter(agreement =>
+        agreement.transferType === filters.transferType
+      )
+      const courseIds = new Set(transferAgreements.map(agreement => agreement.courseId))
+      courses = courses.filter(course => courseIds.has(course.id))
+    }
+
+    // Search by query
+    if (filters.query) {
+      const searchTerm = filters.query.toLowerCase()
+      courses = courses.filter(course =>
+        course.courseCode.toLowerCase().includes(searchTerm) ||
+        course.courseTitle.toLowerCase().includes(searchTerm) ||
+        course.department?.toLowerCase().includes(searchTerm) ||
+        course.description?.toLowerCase().includes(searchTerm)
+      )
+    }
+
+    // Convert to expected format
+    return courses.map(course => {
+      const college = assistColleges.find(c => c.id === course.collegeId)
+      return {
+        id: course.id,
+        courseCode: course.courseCode,
+        courseTitle: course.courseTitle,
+        department: course.department,
+        units: course.units,
+        description: course.description,
+        college: college ? {
+          id: college.id,
+          name: college.name,
+          code: college.code,
+          type: college.type
+        } : null,
+        transferAgreements: getTransferAgreementsByCourse(course.id)
+      }
+    })
+  } catch (error) {
+    console.error('Error searching courses:', error)
+    return []
+  }
+}
+
+/**
+ * Search for transfer agreements
+ */
+export async function searchTransferAgreements(filters: {
+  sourceCollegeId?: number
+  targetCollegeId?: number
+  courseId?: number
+  transferType?: string
+  query?: string
+}): Promise<any[]> {
+  try {
+    let agreements = assistTransferAgreements
+
+    // Filter by source college
+    if (filters.sourceCollegeId) {
+      agreements = agreements.filter(agreement => agreement.sourceCollegeId === filters.sourceCollegeId)
+    }
+
+    // Filter by target college
+    if (filters.targetCollegeId) {
+      agreements = agreements.filter(agreement => agreement.targetCollegeId === filters.targetCollegeId)
+    }
+
+    // Filter by course
+    if (filters.courseId) {
+      agreements = agreements.filter(agreement => agreement.courseId === filters.courseId)
+    }
+
+    // Filter by transfer type
+    if (filters.transferType) {
+      agreements = agreements.filter(agreement => agreement.transferType === filters.transferType)
+    }
+
+    // Search by query
+    if (filters.query) {
+      const searchTerm = filters.query.toLowerCase()
+      agreements = agreements.filter(agreement => {
+        const course = assistCourses.find(c => c.id === agreement.courseId)
+        const sourceCollege = assistColleges.find(c => c.id === agreement.sourceCollegeId)
+        const targetCollege = agreement.targetCollegeId ? assistColleges.find(c => c.id === agreement.targetCollegeId) : null
+
+        return (
+          course?.courseTitle.toLowerCase().includes(searchTerm) ||
+          course?.courseCode.toLowerCase().includes(searchTerm) ||
+          sourceCollege?.name.toLowerCase().includes(searchTerm) ||
+          (targetCollege && targetCollege.name.toLowerCase().includes(searchTerm)) ||
+          agreement.transferNotes?.toLowerCase().includes(searchTerm)
+        )
+      })
+    }
+
+    // Convert to expected format with related data
+    return agreements.map(agreement => {
+      const course = assistCourses.find(c => c.id === agreement.courseId)
+      const sourceCollege = assistColleges.find(c => c.id === agreement.sourceCollegeId)
+      const targetCollege = agreement.targetCollegeId ? assistColleges.find(c => c.id === agreement.targetCollegeId) : null
+
+      return {
+        id: agreement.id,
+        transferType: agreement.transferType,
+        equivalentCourse: agreement.equivalentCourse,
+        unitsTransferred: agreement.unitsTransferred,
+        transferNotes: agreement.transferNotes,
+        academicYear: agreement.academicYear,
+        isActive: agreement.isActive,
+        course: course ? {
+          id: course.id,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          department: course.department,
+          units: course.units
+        } : null,
+        sourceCollege: sourceCollege ? {
+          id: sourceCollege.id,
+          name: sourceCollege.name,
+          code: sourceCollege.code,
+          type: sourceCollege.type
+        } : null,
+        targetCollege: targetCollege ? {
+          id: targetCollege.id,
+          name: targetCollege.name,
+          code: targetCollege.code,
+          type: targetCollege.type
+        } : null
+      }
+    })
+  } catch (error) {
+    console.error('Error searching transfer agreements:', error)
+    return []
   }
 } 

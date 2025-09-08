@@ -46,6 +46,18 @@ import SelectedCoursesTab from '@/components/SelectedCoursesTab'
 import SemesterPlanner from '@/components/SemesterPlanner'
 import DashboardLayout from '@/components/DashboardLayout'
 import DashboardCards from '@/components/DashboardCards'
+import AssistDataSearch from '@/components/AssistDataSearch'
+import { TransferDataProvider } from '@/contexts/TransferDataContext'
+import IntegratedCourseDashboard from '@/components/IntegratedCourseDashboard'
+import IntegratedSemesterPlanner from '@/components/IntegratedSemesterPlanner'
+import IntegratedTransferPathways from '@/components/IntegratedTransferPathways'
+import {
+    colleges as assistColleges,
+    transferAgreements as assistTransferAgreements,
+    getTransferAgreementsByCollege,
+    getCollegesByType,
+    getDataStatistics
+} from '@/data/assist/utils'
 
 export default function TransferAI() {
     const [user, setUser] = useState<UserType | null>(null)
@@ -281,13 +293,17 @@ export default function TransferAI() {
             )
         }
 
-        return <DashboardView
-            user={user}
-            dashboardData={dashboardData}
-            onLogout={handleLogout}
-            refreshDashboard={() => loadDashboardData('', user || undefined)}
-            setCurrentView={setCurrentView}
-        />
+        return (
+            <TransferDataProvider>
+                <DashboardView
+                    user={user}
+                    dashboardData={dashboardData}
+                    onLogout={handleLogout}
+                    refreshDashboard={() => loadDashboardData('', user || undefined)}
+                    setCurrentView={setCurrentView}
+                />
+            </TransferDataProvider>
+        )
     } catch (error) {
         console.error('Render error:', error)
         return (
@@ -743,10 +759,14 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
             )}
 
             {activeTab === 'courses' && (
-                <CourseDashboard
+                <IntegratedCourseDashboard
                     studentInstitution={user?.user_metadata?.currentCollege}
                     userId={user?.id}
                 />
+            )}
+
+            {activeTab === 'search' && (
+                <AssistDataSearch />
             )}
 
             {activeTab === 'selected' && (
@@ -761,7 +781,7 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
 
             {activeTab === 'planner' && (
                 user?.id ? (
-                    <SemesterPlanner userId={user.id} />
+                    <IntegratedSemesterPlanner userId={user.id} />
                 ) : (
                     <div className="text-center py-12">
                         <p className="text-gray-600">Please log in to access the semester planner.</p>
@@ -774,7 +794,7 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
             )}
 
             {activeTab === 'pathways' && (
-                <TransferPathwaysTab user={user} />
+                <IntegratedTransferPathways userId={user?.id} />
             )}
 
             {activeTab === 'recommendations' && (
@@ -858,6 +878,35 @@ function OverviewTab({ dashboardData }: any) {
                     </div>
                 </CardContent>
             </Card>
+
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle className="flex items-center">
+                        <School className="h-5 w-5 mr-2" />
+                        Available Transfer Data
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 border rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{getDataStatistics().colleges}</div>
+                            <div className="text-sm text-gray-600">California Colleges</div>
+                        </div>
+                        <div className="text-center p-3 border rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">{getDataStatistics().courses}</div>
+                            <div className="text-sm text-gray-600">Transferable Courses</div>
+                        </div>
+                        <div className="text-center p-3 border rounded-lg">
+                            <div className="text-2xl font-bold text-purple-600">{getDataStatistics().transferAgreements}</div>
+                            <div className="text-sm text-gray-600">Transfer Agreements</div>
+                        </div>
+                        <div className="text-center p-3 border rounded-lg">
+                            <div className="text-2xl font-bold text-orange-600">{getDataStatistics().geRequirements}</div>
+                            <div className="text-sm text-gray-600">GE Requirements</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     )
 }
@@ -865,11 +914,134 @@ function OverviewTab({ dashboardData }: any) {
 
 
 function TransferAnalysisTab({ dashboardData }: any) {
+    const stats = getDataStatistics()
+    const ucColleges = getCollegesByType('UC')
+    const csuColleges = getCollegesByType('CSU')
+    const cccColleges = getCollegesByType('CCC')
+
     return (
         <div className="space-y-6">
+            {/* Real Data Statistics */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Transfer Pathway Analysis</CardTitle>
+                    <CardTitle className="flex items-center">
+                        <Target className="h-5 w-5 mr-2" />
+                        California Transfer Data Overview
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-blue-600">{stats.colleges}</div>
+                            <div className="text-sm text-gray-600">Colleges</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-green-600">{stats.courses}</div>
+                            <div className="text-sm text-gray-600">Courses</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-purple-600">{stats.transferAgreements}</div>
+                            <div className="text-sm text-gray-600">Transfer Agreements</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-orange-600">{stats.geRequirements}</div>
+                            <div className="text-sm text-gray-600">GE Requirements</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-red-600">{stats.majorRequirements}</div>
+                            <div className="text-sm text-gray-600">Major Requirements</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* College Types */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">UC Schools ({ucColleges.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            {ucColleges.slice(0, 5).map(college => (
+                                <div key={college.id} className="flex items-center justify-between">
+                                    <span className="text-sm">{college.name}</span>
+                                    <Badge variant="outline" className="text-xs">{college.code}</Badge>
+                                </div>
+                            ))}
+                            {ucColleges.length > 5 && (
+                                <p className="text-xs text-gray-500">+{ucColleges.length - 5} more</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">CSU Schools ({csuColleges.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            {csuColleges.slice(0, 5).map(college => (
+                                <div key={college.id} className="flex items-center justify-between">
+                                    <span className="text-sm">{college.name}</span>
+                                    <Badge variant="outline" className="text-xs">{college.code}</Badge>
+                                </div>
+                            ))}
+                            {csuColleges.length > 5 && (
+                                <p className="text-xs text-gray-500">+{csuColleges.length - 5} more</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Community Colleges ({cccColleges.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            {cccColleges.slice(0, 5).map(college => (
+                                <div key={college.id} className="flex items-center justify-between">
+                                    <span className="text-sm">{college.name}</span>
+                                    <Badge variant="outline" className="text-xs">{college.code}</Badge>
+                                </div>
+                            ))}
+                            {cccColleges.length > 5 && (
+                                <p className="text-xs text-gray-500">+{cccColleges.length - 5} more</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Transfer Agreement Types */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Transfer Agreement Types</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="text-center p-4 border rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">852</div>
+                            <div className="text-sm text-gray-600">UC Transferable</div>
+                        </div>
+                        <div className="text-center p-4 border rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">983</div>
+                            <div className="text-sm text-gray-600">CSU Transferable</div>
+                        </div>
+                        <div className="text-center p-4 border rounded-lg">
+                            <div className="text-2xl font-bold text-purple-600">1,042</div>
+                            <div className="text-sm text-gray-600">IGETC Approved</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Mock User Pathways (preserving existing functionality) */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Your Transfer Pathway Analysis</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">

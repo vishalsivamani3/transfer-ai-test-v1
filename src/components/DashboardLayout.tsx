@@ -15,7 +15,8 @@ import {
     Settings,
     LogOut,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -33,6 +34,7 @@ const sidebarItems = [
     { id: 'overview', label: 'Overview', icon: Home, description: 'Dashboard overview' },
     { id: 'profile', label: 'Profile', icon: User, description: 'Manage your profile' },
     { id: 'courses', label: 'Courses', icon: BookOpen, description: 'Browse courses' },
+    { id: 'search', label: 'Search', icon: Search, description: 'Search transfer data' },
     { id: 'selected', label: 'Selected', icon: Star, description: 'Your selected courses' },
     { id: 'planner', label: 'Planner', icon: Calendar, description: 'Semester planner' },
     { id: 'transfer', label: 'Transfer', icon: Target, description: 'Transfer analysis' },
