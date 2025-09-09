@@ -495,8 +495,37 @@ export function TransferDataProvider({ children }: { children: ReactNode }) {
         loadTransferPathways: async (filters?: any) => {
             dispatch({ type: 'SET_LOADING', payload: { key: 'transferPathways', value: true } })
             try {
-                // This would be implemented based on your transfer pathway logic
+                // Generate transfer pathways from selected courses and transfer agreements
                 const pathways: TransferPathway[] = []
+
+                if (state.selectedCourses.length > 0 && state.transferAgreements.length > 0) {
+                    // Group agreements by target college
+                    const agreementsByTarget = state.transferAgreements.reduce((acc, agreement) => {
+                        if (agreement.targetCollege) {
+                            const key = agreement.targetCollege.name
+                            if (!acc[key]) acc[key] = []
+                            acc[key].push(agreement)
+                        }
+                        return acc
+                    }, {} as Record<string, TransferAgreement[]>)
+
+                    // Create pathways for each target college
+                    Object.entries(agreementsByTarget).forEach(([targetCollege, agreements]) => {
+                        const pathway: TransferPathway = {
+                            id: `pathway-${targetCollege}`,
+                            sourceCollege: agreements[0]?.sourceCollege?.name || 'Multiple',
+                            targetCollege,
+                            major: 'General Transfer',
+                            requiredCourses: state.selectedCourses,
+                            transferAgreements: agreements,
+                            totalUnits: state.selectedCourses.reduce((sum, course) => sum + (course.units || 3), 0),
+                            transferableUnits: agreements.reduce((sum, a) => sum + (a.unitsTransferred || 0), 0),
+                            guaranteedTransfer: agreements.every(a => a.isActive)
+                        }
+                        pathways.push(pathway)
+                    })
+                }
+
                 dispatch({ type: 'SET_TRANSFER_PATHWAYS', payload: pathways })
             } catch (error) {
                 dispatch({ type: 'SET_ERROR', payload: { key: 'transferPathways', value: 'Failed to load transfer pathways' } })

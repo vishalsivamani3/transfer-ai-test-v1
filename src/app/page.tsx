@@ -51,6 +51,8 @@ import { TransferDataProvider } from '@/contexts/TransferDataContext'
 import IntegratedCourseDashboard from '@/components/IntegratedCourseDashboard'
 import IntegratedSemesterPlanner from '@/components/IntegratedSemesterPlanner'
 import IntegratedTransferPathways from '@/components/IntegratedTransferPathways'
+import IntegratedOverview from '@/components/IntegratedOverview'
+import IntegratedProfileManagement from '@/components/IntegratedProfileManagement'
 import {
     colleges as assistColleges,
     transferAgreements as assistTransferAgreements,
@@ -751,11 +753,15 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
 
             {/* Tab Content */}
             {activeTab === 'overview' && (
-                <OverviewTab dashboardData={dashboardData} />
+                <IntegratedOverview
+                    user={user}
+                    dashboardData={dashboardData}
+                    onNavigate={setActiveTab}
+                />
             )}
 
             {activeTab === 'profile' && (
-                <ProfileTab user={user} />
+                <IntegratedProfileManagement user={user} />
             )}
 
             {activeTab === 'courses' && (
@@ -765,9 +771,6 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
                 />
             )}
 
-            {activeTab === 'search' && (
-                <AssistDataSearch />
-            )}
 
             {activeTab === 'selected' && (
                 user?.id ? (
