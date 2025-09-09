@@ -53,6 +53,7 @@ import IntegratedSemesterPlanner from '@/components/IntegratedSemesterPlanner'
 import IntegratedTransferPathways from '@/components/IntegratedTransferPathways'
 import IntegratedOverview from '@/components/IntegratedOverview'
 import IntegratedProfileManagement from '@/components/IntegratedProfileManagement'
+import TransferPathwayBrowser from '@/components/TransferPathwayBrowser'
 import {
     colleges as assistColleges,
     transferAgreements as assistTransferAgreements,
@@ -797,7 +798,7 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
             )}
 
             {activeTab === 'pathways' && (
-                <IntegratedTransferPathways userId={user?.id} />
+                <TransferPathwayBrowser userId={user?.id} />
             )}
 
             {activeTab === 'recommendations' && (
