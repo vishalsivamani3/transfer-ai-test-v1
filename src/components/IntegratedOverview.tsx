@@ -22,10 +22,10 @@ import {
     Star,
     ArrowRight,
     Plus,
-    Edit
+    Edit,
+    User
 } from 'lucide-react'
 import { useTransferData } from '@/contexts/TransferDataContext'
-import { getDataStatistics, getCollegesByType } from '@/data/assist/utils'
 
 interface IntegratedOverviewProps {
     user?: any
@@ -35,23 +35,6 @@ interface IntegratedOverviewProps {
 
 export default function IntegratedOverview({ user, dashboardData, onNavigate }: IntegratedOverviewProps) {
     const { state } = useTransferData()
-    const [assistStats, setAssistStats] = useState<any>(null)
-    const [collegeTypes, setCollegeTypes] = useState<any>(null)
-
-    // Load Assist data statistics
-    useEffect(() => {
-        const loadAssistStats = async () => {
-            try {
-                const stats = getDataStatistics()
-                const types = getCollegesByType()
-                setAssistStats(stats)
-                setCollegeTypes(types)
-            } catch (error) {
-                console.error('Error loading Assist stats:', error)
-            }
-        }
-        loadAssistStats()
-    }, [])
 
     // Calculate user progress
     const calculateProgress = () => {
@@ -80,7 +63,10 @@ export default function IntegratedOverview({ user, dashboardData, onNavigate }: 
     // Get user's current college info
     const currentCollege = user?.user_metadata?.currentCollege || 'Not specified'
     const targetMajor = user?.user_metadata?.targetMajor || 'Not specified'
-    const targetUniversities = user?.user_metadata?.targetUniversities || []
+    const gpa = user?.user_metadata?.gpa || 'Not specified'
+    const transferTimeline = user?.user_metadata?.transferTimeline || 'Not specified'
+    const academicGoals = user?.user_metadata?.academicGoals || ''
+    const interests = user?.user_metadata?.interests || []
 
     return (
         <div className="space-y-6">
@@ -94,7 +80,7 @@ export default function IntegratedOverview({ user, dashboardData, onNavigate }: 
                         Track your transfer progress and plan your academic journey
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="flex items-center gap-1">
                         <School className="h-3 w-3" />
                         {currentCollege}
@@ -103,307 +89,247 @@ export default function IntegratedOverview({ user, dashboardData, onNavigate }: 
                         <Target className="h-3 w-3" />
                         {targetMajor}
                     </Badge>
+                    {gpa !== 'Not specified' && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                            <Award className="h-3 w-3" />
+                            GPA: {gpa}
+                        </Badge>
+                    )}
+                    {transferTimeline !== 'Not specified' && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {transferTimeline}
+                        </Badge>
+                    )}
                 </div>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Quick Actions - Streamlined Navigation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => onNavigate?.('selected')}
-                >
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-muted-foreground truncate">Selected Courses</p>
-                                <p className="text-2xl font-bold">{progress.totalCourses}</p>
-                            </div>
-                            <BookOpen className="h-6 w-6 text-blue-600 flex-shrink-0" />
-                        </div>
-                        <div className="space-y-1">
-                            <Progress value={Math.min((progress.totalCourses / 20) * 100, 100)} className="h-1.5" />
-                            <p className="text-xs text-muted-foreground truncate">Target: 20 courses</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card
-                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-blue-300"
                     onClick={() => onNavigate?.('courses')}
                 >
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-muted-foreground truncate">Total Credits</p>
-                                <p className="text-2xl font-bold">{progress.totalCredits}</p>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-100 rounded-lg">
+                                <BookOpen className="h-6 w-6 text-blue-600" />
                             </div>
-                            <Award className="h-6 w-6 text-green-600 flex-shrink-0" />
-                        </div>
-                        <div className="space-y-1">
-                            <Progress value={Math.min((progress.totalCredits / 60) * 100, 100)} className="h-1.5" />
-                            <p className="text-xs text-muted-foreground truncate">Target: 60 credits</p>
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-lg">Browse Courses</h3>
+                                <p className="text-sm text-gray-600">Explore available courses and add to your plan</p>
+                                <div className="mt-2 flex items-center gap-4 text-sm">
+                                    <span className="text-blue-600 font-medium">{progress.totalCourses} selected</span>
+                                    <span className="text-gray-500">{progress.totalCredits} credits</span>
+                                </div>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-gray-400" />
                         </div>
                     </CardContent>
                 </Card>
 
                 <Card
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => onNavigate?.('pathways')}
-                >
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-muted-foreground truncate">Transferable</p>
-                                <p className="text-2xl font-bold">{progress.transferableCredits}</p>
-                            </div>
-                            <TrendingUp className="h-6 w-6 text-purple-600 flex-shrink-0" />
-                        </div>
-                        <div className="space-y-1">
-                            <Progress value={progress.transferabilityRate} className="h-1.5" />
-                            <p className="text-xs text-muted-foreground truncate">
-                                {progress.transferabilityRate.toFixed(1)}% transferable
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card
-                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-green-300"
                     onClick={() => onNavigate?.('planner')}
                 >
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-muted-foreground truncate">Semester Plans</p>
-                                <p className="text-2xl font-bold">{state.semesterPlans.length}</p>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-green-100 rounded-lg">
+                                <Calendar className="h-6 w-6 text-green-600" />
                             </div>
-                            <Calendar className="h-6 w-6 text-orange-600 flex-shrink-0" />
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-lg">Semester Planner</h3>
+                                <p className="text-sm text-gray-600">Plan your courses across semesters</p>
+                                <div className="mt-2 flex items-center gap-2">
+                                    {state.activeSemesterPlan ? (
+                                        <div className="flex items-center gap-1">
+                                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                            <span className="text-sm text-green-600">Active plan</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-1">
+                                            <AlertCircle className="h-4 w-4 text-orange-600" />
+                                            <span className="text-sm text-orange-600">Create plan</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-gray-400" />
                         </div>
-                        <div className="space-y-1">
-                            {state.activeSemesterPlan ? (
-                                <div className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
-                                    <p className="text-xs text-green-600 truncate">Active plan</p>
+                    </CardContent>
+                </Card>
+
+                <Card
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-purple-300"
+                    onClick={() => onNavigate?.('pathways')}
+                >
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-purple-100 rounded-lg">
+                                <TrendingUp className="h-6 w-6 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-lg">Transfer Pathways</h3>
+                                <p className="text-sm text-gray-600">Explore major-specific transfer programs</p>
+                                <div className="mt-2 flex items-center gap-4 text-sm">
+                                    <span className="text-purple-600 font-medium">{progress.transferableCredits} transferable</span>
+                                    <span className="text-gray-500">{progress.transferabilityRate.toFixed(1)}% rate</span>
+                                </div>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-gray-400" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Current Status & Next Steps */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Current Progress */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <CheckCircle className="h-5 w-5" />
+                            Your Progress
+                        </CardTitle>
+                        <CardDescription className="text-sm">
+                            Track your transfer preparation
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium">Courses Selected</span>
+                                <span className="text-lg font-bold text-blue-600">{progress.totalCourses}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium">Total Credits</span>
+                                <span className="text-lg font-bold text-green-600">{progress.totalCredits}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium">Transferable Credits</span>
+                                <span className="text-lg font-bold text-purple-600">{progress.transferableCredits}</span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span>Transferability Rate</span>
+                                    <span className="font-medium">{progress.transferabilityRate.toFixed(1)}%</span>
+                                </div>
+                                <Progress value={progress.transferabilityRate} className="h-2" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Next Steps */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <ArrowRight className="h-5 w-5" />
+                            Next Steps
+                        </CardTitle>
+                        <CardDescription className="text-sm">
+                            Recommended actions for your transfer journey
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="space-y-3">
+                            {progress.totalCourses === 0 ? (
+                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                                    <div className="p-2 bg-blue-100 rounded">
+                                        <BookOpen className="h-4 w-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">Start by browsing courses</p>
+                                        <p className="text-xs text-gray-600">Add courses to your selection</p>
+                                    </div>
+                                    <Button size="sm" variant="outline" onClick={() => onNavigate?.('courses')}>
+                                        Browse
+                                    </Button>
+                                </div>
+                            ) : !state.activeSemesterPlan ? (
+                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                                    <div className="p-2 bg-green-100 rounded">
+                                        <Calendar className="h-4 w-4 text-green-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">Create a semester plan</p>
+                                        <p className="text-xs text-gray-600">Organize your courses by semester</p>
+                                    </div>
+                                    <Button size="sm" variant="outline" onClick={() => onNavigate?.('planner')}>
+                                        Plan
+                                    </Button>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-1">
-                                    <AlertCircle className="h-3 w-3 text-orange-600 flex-shrink-0" />
-                                    <p className="text-xs text-orange-600 truncate">No active plan</p>
+                                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                                    <div className="p-2 bg-purple-100 rounded">
+                                        <TrendingUp className="h-4 w-4 text-purple-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">Explore transfer pathways</p>
+                                        <p className="text-xs text-gray-600">Find major-specific programs</p>
+                                    </div>
+                                    <Button size="sm" variant="outline" onClick={() => onNavigate?.('pathways')}>
+                                        Explore
+                                    </Button>
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="p-2 bg-gray-100 rounded">
+                                    <User className="h-4 w-4 text-gray-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium">Update your profile</p>
+                                    <p className="text-xs text-gray-600">Keep your goals and preferences current</p>
+                                </div>
+                                <Button size="sm" variant="outline" onClick={() => onNavigate?.('profile')}>
+                                    Update
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+
+            {/* Profile Summary */}
+            {(academicGoals || interests.length > 0) && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <User className="h-5 w-5" />
+                            Your Academic Profile
+                        </CardTitle>
+                        <CardDescription>
+                            Your goals and interests inform your transfer planning
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {academicGoals && (
+                                <div>
+                                    <h4 className="font-medium text-sm mb-2">Academic Goals</h4>
+                                    <p className="text-sm text-gray-600">{academicGoals}</p>
+                                </div>
+                            )}
+
+                            {interests.length > 0 && (
+                                <div>
+                                    <h4 className="font-medium text-sm mb-2">Areas of Interest</h4>
+                                    <div className="flex flex-wrap gap-1">
+                                        {interests.map((interest, index) => (
+                                            <Badge key={index} variant="secondary" className="text-xs">
+                                                {interest}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            )}
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Course Selection Summary */}
-                <Card
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => onNavigate?.('selected')}
-                >
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Star className="h-5 w-5" />
-                            Course Selection
-                        </CardTitle>
-                        <CardDescription className="text-sm">
-                            {progress.totalCourses} courses • {progress.totalCredits} credits
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        {progress.totalCourses === 0 ? (
-                            <div className="text-center py-6">
-                                <BookOpen className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                                <p className="text-gray-600 text-sm mb-2">No courses selected</p>
-                                <p className="text-xs text-gray-500">Click to browse courses</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="text-center">
-                                        <div className="text-xl font-bold text-blue-600">{progress.totalCourses}</div>
-                                        <div className="text-xs text-gray-600">Courses</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-xl font-bold text-green-600">{progress.transferableCredits}</div>
-                                        <div className="text-xs text-gray-600">Transferable</div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <div className="flex justify-between text-xs">
-                                        <span>Transferability</span>
-                                        <span>{progress.transferabilityRate.toFixed(1)}%</span>
-                                    </div>
-                                    <Progress value={progress.transferabilityRate} className="h-1.5" />
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Semester Plan Summary */}
-                <Card
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => onNavigate?.('planner')}
-                >
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Calendar className="h-5 w-5" />
-                            Semester Planning
-                        </CardTitle>
-                        <CardDescription className="text-sm">
-                            {state.activeSemesterPlan ? 'Active plan in progress' : 'No active plan'}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        {!state.activeSemesterPlan ? (
-                            <div className="text-center py-6">
-                                <Calendar className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                                <p className="text-gray-600 text-sm mb-2">No semester plan</p>
-                                <p className="text-xs text-gray-500">Click to create a plan</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="font-semibold text-sm truncate">{state.activeSemesterPlan.name}</h3>
-                                    <Badge variant="outline" className="text-xs">{state.activeSemesterPlan.timeline}</Badge>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="text-center">
-                                        <div className="text-xl font-bold text-blue-600">{state.activeSemesterPlan.semesters.length}</div>
-                                        <div className="text-xs text-gray-600">Semesters</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-xl font-bold text-green-600">{state.activeSemesterPlan.totalCredits}</div>
-                                        <div className="text-xs text-gray-600">Planned</div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <div className="flex justify-between text-xs">
-                                        <span>Transferable</span>
-                                        <span>{state.activeSemesterPlan.transferableCredits}</span>
-                                    </div>
-                                    <Progress
-                                        value={state.activeSemesterPlan.totalCredits > 0 ?
-                                            (state.activeSemesterPlan.transferableCredits / state.activeSemesterPlan.totalCredits) * 100 : 0
-                                        }
-                                        className="h-1.5"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Transfer Pathway Insights */}
-            <Card
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => onNavigate?.('pathways')}
-            >
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <Target className="h-5 w-5" />
-                        Transfer Insights
-                    </CardTitle>
-                    <CardDescription className="text-sm">
-                        Analysis based on your courses and target universities
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-blue-600 mb-1">
-                                {assistStats?.totalColleges || 0}
-                            </div>
-                            <div className="text-xs text-gray-600 mb-1">Available Colleges</div>
-                            <div className="text-xs text-gray-500 truncate">
-                                {collegeTypes?.UC?.length || 0} UC • {collegeTypes?.CSU?.length || 0} CSU • {collegeTypes?.CCC?.length || 0} CCC
-                            </div>
-                        </div>
-
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-green-600 mb-1">
-                                {assistStats?.totalCourses || 0}
-                            </div>
-                            <div className="text-xs text-gray-600 mb-1">Available Courses</div>
-                            <div className="text-xs text-gray-500">
-                                California colleges
-                            </div>
-                        </div>
-
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-purple-600 mb-1">
-                                {assistStats?.totalTransferAgreements || 0}
-                            </div>
-                            <div className="text-xs text-gray-600 mb-1">Transfer Agreements</div>
-                            <div className="text-xs text-gray-500">
-                                Verified pathways
-                            </div>
-                        </div>
-                    </div>
-
-                    {targetUniversities.length > 0 && (
-                        <div className="mt-4 pt-4 border-t">
-                            <h4 className="font-medium text-sm mb-2">Target Universities</h4>
-                            <div className="flex flex-wrap gap-1">
-                                {targetUniversities.slice(0, 3).map((university: string, index: number) => (
-                                    <Badge key={index} variant="secondary" className="text-xs">
-                                        <GraduationCap className="h-3 w-3 mr-1" />
-                                        {university}
-                                    </Badge>
-                                ))}
-                                {targetUniversities.length > 3 && (
-                                    <Badge variant="outline" className="text-xs">
-                                        +{targetUniversities.length - 3} more
-                                    </Badge>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Quick Actions</CardTitle>
-                    <CardDescription className="text-sm">Get started with your transfer planning</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <Button
-                            variant="outline"
-                            className="h-16 flex flex-col items-center justify-center"
-                            onClick={() => onNavigate?.('courses')}
-                        >
-                            <BookOpen className="h-5 w-5 mb-1" />
-                            <span className="text-sm">Browse Courses</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="h-16 flex flex-col items-center justify-center"
-                            onClick={() => onNavigate?.('planner')}
-                        >
-                            <Calendar className="h-5 w-5 mb-1" />
-                            <span className="text-sm">Create Plan</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="h-16 flex flex-col items-center justify-center"
-                            onClick={() => onNavigate?.('pathways')}
-                        >
-                            <Target className="h-5 w-5 mb-1" />
-                            <span className="text-sm">Explore Pathways</span>
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
         </div>
     )
 }

@@ -28,10 +28,11 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTransferData, SemesterPlan, Semester, PlannedCourse, AssistCourse } from '@/contexts/TransferDataContext'
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter } from '@dnd-kit/core'
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import PathwayCloner from './PathwayCloner'
 
 interface IntegratedSemesterPlannerProps {
     userId?: string
@@ -92,38 +93,70 @@ function SortableCourseItem({ course, onRemove }: { course: PlannedCourse; onRem
     )
 }
 
+// Selected Courses Drop Zone Component
+function SelectedCoursesDropZone() {
+    const { state, actions } = useTransferData()
+    const { setNodeRef, isOver } = useDroppable({
+        id: 'selected-courses',
+    })
+
+    return (
+        <Card
+            ref={setNodeRef}
+            className={`transition-colors ${isOver ? 'border-green-500 bg-green-50' : ''}`}
+        >
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    Selected Courses ({state.selectedCourses.length})
+                </CardTitle>
+                <CardDescription>
+                    Drag these courses to your semester plan or drag courses back here to remove from semesters
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {state.selectedCourses.map((course) => (
+                        <div
+                            key={course.id}
+                            className="bg-gray-50 border rounded-lg p-3 cursor-move hover:bg-gray-100 transition-colors"
+                        >
+                            <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-medium text-sm">{course.courseCode}</h4>
+                                <Badge variant="outline" className="text-xs">
+                                    {course.units} units
+                                </Badge>
+                            </div>
+                            <p className="text-xs text-gray-600 mb-1">{course.courseTitle}</p>
+                            <p className="text-xs text-gray-500">{course.college.name}</p>
+                            {course.transferAgreements.length > 0 && (
+                                <Badge variant="secondary" className="text-xs mt-1">
+                                    Transferable
+                                </Badge>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 // Semester Card Component
 function SemesterCard({ semester, onAddCourse, onRemoveCourse }: {
     semester: Semester
     onAddCourse: (course: AssistCourse) => void
     onRemoveCourse: (courseId: number) => void
 }) {
-    const { state } = useTransferData()
-    const [isDragOver, setIsDragOver] = useState(false)
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault()
-        setIsDragOver(true)
-    }
-
-    const handleDragLeave = () => {
-        setIsDragOver(false)
-    }
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault()
-        setIsDragOver(false)
-
-        try {
-            const courseData = JSON.parse(e.dataTransfer.getData('application/json'))
-            onAddCourse(courseData)
-        } catch (error) {
-            console.error('Error handling drop:', error)
-        }
-    }
+    const { setNodeRef, isOver } = useDroppable({
+        id: semester.id,
+    })
 
     return (
-        <Card className={`transition-colors ${isDragOver ? 'border-blue-500 bg-blue-50' : ''}`}>
+        <Card
+            ref={setNodeRef}
+            className={`transition-colors ${isOver ? 'border-blue-500 bg-blue-50' : ''}`}
+        >
             <CardHeader className="pb-3">
                 <div className="flex justify-between items-center">
                     <div>
@@ -137,12 +170,7 @@ function SemesterCard({ semester, onAddCourse, onRemoveCourse }: {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className="min-h-[200px]"
-            >
+            <CardContent className="min-h-[200px]">
                 {semester.courses.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                         <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -297,6 +325,7 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
 
         if (!over || !state.activeSemesterPlan) return
 
+        // Check if dragging from selected courses to a semester
         const activeCourse = state.selectedCourses.find(c => c.id.toString() === active.id)
         if (activeCourse) {
             // Find the semester that was dropped on
@@ -304,6 +333,35 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
             actions.addCourseToSemester(semesterId, activeCourse)
             actions.removeSelectedCourse(activeCourse.id)
             toast.success(`Added ${activeCourse.courseCode} to semester`)
+            return
+        }
+
+        // Check if dragging a course between semesters or back to selected courses
+        const activePlannedCourse = state.activeSemesterPlan.semesters
+            .flatMap(sem => sem.courses)
+            .find(c => c.id.toString() === active.id)
+
+        if (activePlannedCourse) {
+            const targetId = over.id as string
+
+            // Find the source semester
+            const sourceSemester = state.activeSemesterPlan.semesters.find(sem =>
+                sem.courses.some(c => c.id.toString() === active.id)
+            )
+
+            if (targetId === 'selected-courses') {
+                // Move course back to selected courses
+                if (sourceSemester) {
+                    actions.removeCourseFromSemester(sourceSemester.id, activePlannedCourse.courseId)
+                    actions.addSelectedCourse(activePlannedCourse.course)
+                    toast.success(`Moved ${activePlannedCourse.course.courseCode} back to selected courses`)
+                }
+            } else if (sourceSemester && sourceSemester.id !== targetId) {
+                // Move course from source semester to target semester
+                actions.removeCourseFromSemester(sourceSemester.id, activePlannedCourse.courseId)
+                actions.addCourseToSemester(targetId, activePlannedCourse.course)
+                toast.success(`Moved ${activePlannedCourse.course.courseCode} to ${state.activeSemesterPlan.semesters.find(s => s.id === targetId)?.name}`)
+            }
         }
     }
 
@@ -319,16 +377,6 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
         toast.success('Course removed from semester')
     }
 
-    // Make courses draggable
-    const makeCourseDraggable = (course: AssistCourse) => {
-        return {
-            draggable: true,
-            onDragStart: (e: React.DragEvent) => {
-                e.dataTransfer.setData('application/json', JSON.stringify(course))
-                e.dataTransfer.effectAllowed = 'move'
-            }
-        }
-    }
 
     return (
         <div className="space-y-6">
@@ -410,6 +458,16 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
                 </Dialog>
             </div>
 
+            {/* Pathway Cloner */}
+            {userId && (
+                <PathwayCloner
+                    userId={userId}
+                    onPathwayCloned={(pathway, courses) => {
+                        toast.success(`Successfully cloned ${pathway.major} pathway with ${courses.length} courses!`)
+                    }}
+                />
+            )}
+
             {/* Active Plan Info */}
             {state.activeSemesterPlan && (
                 <Card>
@@ -443,48 +501,35 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
                                 <div className="text-sm text-gray-600">Total Courses</div>
                             </div>
                         </div>
+
+                        {/* Pathway Status */}
+                        {state.activeSemesterPlan.semesters.some(sem =>
+                            sem.courses.some(course => course.transferPathways.length > 0)
+                        ) && (
+                                <div className="mt-4 pt-4 border-t">
+                                    <h4 className="font-medium mb-2">Following Transfer Pathways:</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Array.from(new Set(
+                                            state.activeSemesterPlan.semesters
+                                                .flatMap(sem => sem.courses)
+                                                .flatMap(course => course.transferPathways)
+                                                .map(pathway => pathway.major)
+                                        )).map(major => (
+                                            <Badge key={major} variant="secondary" className="flex items-center gap-1">
+                                                <GraduationCap className="h-3 w-3" />
+                                                {major}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                     </CardContent>
                 </Card>
             )}
 
             {/* Selected Courses (Draggable) */}
             {state.selectedCourses.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <BookOpen className="h-5 w-5" />
-                            Selected Courses ({state.selectedCourses.length})
-                        </CardTitle>
-                        <CardDescription>
-                            Drag these courses to your semester plan
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {state.selectedCourses.map((course) => (
-                                <div
-                                    key={course.id}
-                                    className="bg-gray-50 border rounded-lg p-3 cursor-move hover:bg-gray-100 transition-colors"
-                                    {...makeCourseDraggable(course)}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-medium text-sm">{course.courseCode}</h4>
-                                        <Badge variant="outline" className="text-xs">
-                                            {course.units} units
-                                        </Badge>
-                                    </div>
-                                    <p className="text-xs text-gray-600 mb-1">{course.courseTitle}</p>
-                                    <p className="text-xs text-gray-500">{course.college.name}</p>
-                                    {course.transferAgreements.length > 0 && (
-                                        <Badge variant="secondary" className="text-xs mt-1">
-                                            Transferable
-                                        </Badge>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                <SelectedCoursesDropZone />
             )}
 
             {/* Semester Plan */}

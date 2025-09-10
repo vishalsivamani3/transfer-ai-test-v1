@@ -11,14 +11,13 @@ import {
     Target,
     TrendingUp,
     FileText,
-    Star,
     Settings,
     LogOut,
     ChevronLeft,
-    ChevronRight,
-    Search
+    ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { UserProfile } from '@/components/auth/UserProfile'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
@@ -34,9 +33,8 @@ const sidebarItems = [
     { id: 'overview', label: 'Overview', icon: Home, description: 'Dashboard overview' },
     { id: 'profile', label: 'Profile', icon: User, description: 'Manage your profile' },
     { id: 'courses', label: 'Courses', icon: BookOpen, description: 'Browse courses' },
-    { id: 'selected', label: 'Selected', icon: Star, description: 'Your selected courses' },
     { id: 'planner', label: 'Planner', icon: Calendar, description: 'Semester planner' },
-    { id: 'transfer', label: 'Transfer', icon: Target, description: 'Transfer analysis' },
+    { id: 'applications', label: 'Applications', icon: Target, description: 'Track transfer applications' },
     { id: 'pathways', label: 'Pathways', icon: TrendingUp, description: 'Transfer pathways' },
     { id: 'recommendations', label: 'Recommendations', icon: FileText, description: 'Course recommendations' },
 ]
@@ -137,48 +135,13 @@ export default function DashboardLayout({
 
                 {/* Sidebar Footer */}
                 <div className="p-4 border-t border-gray-200">
-                    {!sidebarCollapsed && user && (
-                        <div className="mb-3">
-                            <div className="flex items-center space-x-2">
-                                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-gray-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                        {user.user_metadata?.firstName || 'User'}
-                                    </p>
-                                    <p className="text-xs text-gray-500 truncate">
-                                        {user.email}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    {user && (
+                        <UserProfile
+                            showDropdown={true}
+                            onSignOut={onLogout}
+                            className="w-full"
+                        />
                     )}
-
-                    <div className="flex space-x-2">
-                        {!sidebarCollapsed && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onLogout}
-                                className="flex-1 justify-start"
-                            >
-                                <LogOut className="w-4 h-4 mr-2" />
-                                Logout
-                            </Button>
-                        )}
-                        {sidebarCollapsed && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onLogout}
-                                className="w-full"
-                                title="Logout"
-                            >
-                                <LogOut className="w-4 h-4" />
-                            </Button>
-                        )}
-                    </div>
                 </div>
             </div>
 

@@ -164,6 +164,7 @@ type TransferDataAction =
     | { type: 'ADD_COURSE_TO_SEMESTER'; payload: { semesterId: string; course: AssistCourse } }
     | { type: 'REMOVE_COURSE_FROM_SEMESTER'; payload: { semesterId: string; courseId: number } }
     | { type: 'UPDATE_SEMESTER_PLAN'; payload: SemesterPlan }
+    | { type: 'CLONE_PATHWAY_TO_PLANNER'; payload: { pathway: TransferPathway; courses: AssistCourse[]; semesterMappings: Record<string, string> } }
 
 // Initial state
 const initialState: TransferDataState = {
@@ -420,6 +421,60 @@ function transferDataReducer(state: TransferDataState, action: TransferDataActio
                 )
             }
 
+        case 'CLONE_PATHWAY_TO_PLANNER':
+            if (!state.activeSemesterPlan) return state
+
+            // Add courses to selected courses
+            const updatedSelectedCourses = [...state.selectedCourses, ...action.payload.courses]
+
+            // Distribute courses across semesters based on mappings
+            const updatedSemestersForCloning = state.activeSemesterPlan.semesters.map(semester => {
+                const coursesForThisSemester = action.payload.courses.filter(course => {
+                    const courseMapping = Object.entries(action.payload.semesterMappings).find(
+                        ([courseId, semesterTimeline]) => courseId === course.id.toString()
+                    )
+                    if (!courseMapping) return false
+
+                    const [_, semesterTimeline] = courseMapping
+                    return semester.name.includes(semesterTimeline.split(',')[0]) ||
+                        semester.name.includes(semesterTimeline.split(',')[1]?.trim())
+                })
+
+                const newPlannedCourses = coursesForThisSemester.map(course => ({
+                    id: `${semester.id}-${course.id}`,
+                    semesterId: semester.id,
+                    courseId: course.id,
+                    course: course,
+                    status: 'planned' as const,
+                    credits: course.units || 3,
+                    transferable: course.transferAgreements.length > 0,
+                    transferPathways: [action.payload.pathway]
+                }))
+
+                return {
+                    ...semester,
+                    courses: [...semester.courses, ...newPlannedCourses],
+                    credits: semester.credits + newPlannedCourses.reduce((sum, pc) => sum + pc.credits, 0),
+                    transferableCredits: semester.transferableCredits + newPlannedCourses.reduce((sum, pc) => sum + (pc.transferable ? pc.credits : 0), 0)
+                }
+            })
+
+            const updatedPlanForCloning = {
+                ...state.activeSemesterPlan,
+                semesters: updatedSemestersForCloning,
+                totalCredits: updatedSemestersForCloning.reduce((sum, sem) => sum + sem.credits, 0),
+                transferableCredits: updatedSemestersForCloning.reduce((sum, sem) => sum + sem.transferableCredits, 0)
+            }
+
+            return {
+                ...state,
+                selectedCourses: updatedSelectedCourses,
+                activeSemesterPlan: updatedPlanForCloning,
+                semesterPlans: state.semesterPlans.map(plan =>
+                    plan.id === updatedPlanForCloning.id ? updatedPlanForCloning : plan
+                )
+            }
+
         default:
             return state
     }
@@ -457,6 +512,7 @@ const TransferDataContext = createContext<{
         addCourseToSemester: (semesterId: string, course: AssistCourse) => void
         removeCourseFromSemester: (semesterId: string, courseId: number) => void
         updateSemesterPlan: (plan: SemesterPlan) => void
+        clonePathwayToPlanner: (pathway: TransferPathway, courses: AssistCourse[], semesterMappings: Record<string, string>) => void
 
         // Filters
         setFilter: (key: keyof TransferDataState['filters'], value: string) => void
@@ -624,6 +680,10 @@ export function TransferDataProvider({ children }: { children: ReactNode }) {
 
         updateSemesterPlan: (plan: SemesterPlan) => {
             dispatch({ type: 'UPDATE_SEMESTER_PLAN', payload: plan })
+        },
+
+        clonePathwayToPlanner: (pathway: TransferPathway, courses: AssistCourse[], semesterMappings: Record<string, string>) => {
+            dispatch({ type: 'CLONE_PATHWAY_TO_PLANNER', payload: { pathway, courses, semesterMappings } })
         },
 
         // Filters

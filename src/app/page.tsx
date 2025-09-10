@@ -42,18 +42,18 @@ import {
 import { TransferPathwaysTable } from '@/components/TransferPathwaysTable'
 import CourseDashboard from '@/components/CourseDashboard'
 import StudentProfileForm from '@/components/StudentProfileForm'
-import SelectedCoursesTab from '@/components/SelectedCoursesTab'
 import SemesterPlanner from '@/components/SemesterPlanner'
 import DashboardLayout from '@/components/DashboardLayout'
-import DashboardCards from '@/components/DashboardCards'
 import AssistDataSearch from '@/components/AssistDataSearch'
 import { TransferDataProvider } from '@/contexts/TransferDataContext'
+import { useAuth } from '@/contexts/AuthContext'
 import IntegratedCourseDashboard from '@/components/IntegratedCourseDashboard'
 import IntegratedSemesterPlanner from '@/components/IntegratedSemesterPlanner'
 import IntegratedTransferPathways from '@/components/IntegratedTransferPathways'
 import IntegratedOverview from '@/components/IntegratedOverview'
 import IntegratedProfileManagement from '@/components/IntegratedProfileManagement'
 import TransferPathwayBrowser from '@/components/TransferPathwayBrowser'
+import TransferApplicationTracker from '@/components/TransferApplicationTracker'
 import {
     colleges as assistColleges,
     transferAgreements as assistTransferAgreements,
@@ -63,6 +63,7 @@ import {
 } from '@/data/assist/utils'
 
 export default function TransferAI() {
+    const { state: authState, actions: authActions } = useAuth()
     const [user, setUser] = useState<UserType | null>(null)
     const [loading, setLoading] = useState(true)
     const [currentView, setCurrentView] = useState<'login' | 'signup' | 'onboarding' | 'dashboard' | 'docs'>('login')
@@ -74,6 +75,28 @@ export default function TransferAI() {
         console.log('TransferAI component mounted')
         checkSession()
     }, [])
+
+    // Update user state when auth state changes
+    useEffect(() => {
+        if (authState.user) {
+            const userData: UserType = {
+                id: authState.user.id,
+                email: authState.user.email || '',
+                user_metadata: {
+                    firstName: authState.user.user_metadata?.firstName || '',
+                    lastName: authState.user.user_metadata?.lastName || '',
+                    currentCollege: authState.user.user_metadata?.currentCollege || '',
+                    academicYear: authState.user.user_metadata?.academicYear || ''
+                }
+            }
+            setUser(userData)
+            if (authState.session?.access_token) {
+                loadDashboardData(authState.session.access_token, userData)
+            }
+        } else {
+            setUser(null)
+        }
+    }, [authState.user, authState.session])
 
     const checkSession = async () => {
         try {
@@ -220,7 +243,7 @@ export default function TransferAI() {
     }
 
     const handleLogout = async () => {
-        await supabase.auth.signOut()
+        await authActions.signOut()
         setUser(null)
         setDashboardData(null)
         setCurrentView('login')
@@ -743,14 +766,6 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
             activeTab={activeTab}
             onTabChange={setActiveTab}
         >
-            {/* Dashboard Cards - Only show on overview tab */}
-            {activeTab === 'overview' && (
-                <DashboardCards
-                    user={user}
-                    dashboardData={dashboardData}
-                    className="mb-8"
-                />
-            )}
 
             {/* Tab Content */}
             {activeTab === 'overview' && (
@@ -773,15 +788,6 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
             )}
 
 
-            {activeTab === 'selected' && (
-                user?.id ? (
-                    <SelectedCoursesTab userId={user.id} />
-                ) : (
-                    <div className="text-center py-12">
-                        <p className="text-gray-600">Please log in to view your selected courses.</p>
-                    </div>
-                )
-            )}
 
             {activeTab === 'planner' && (
                 user?.id ? (
@@ -793,8 +799,14 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
                 )
             )}
 
-            {activeTab === 'transfer' && (
-                <TransferAnalysisTab dashboardData={dashboardData} />
+            {activeTab === 'applications' && (
+                user?.id ? (
+                    <TransferApplicationTracker userId={user.id} />
+                ) : (
+                    <div className="text-center py-12">
+                        <p className="text-gray-600">Please log in to track your transfer applications.</p>
+                    </div>
+                )
             )}
 
             {activeTab === 'pathways' && (
@@ -917,182 +929,6 @@ function OverviewTab({ dashboardData }: any) {
 
 
 
-function TransferAnalysisTab({ dashboardData }: any) {
-    const stats = getDataStatistics()
-    const ucColleges = getCollegesByType('UC')
-    const csuColleges = getCollegesByType('CSU')
-    const cccColleges = getCollegesByType('CCC')
-
-    return (
-        <div className="space-y-6">
-            {/* Real Data Statistics */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center">
-                        <Target className="h-5 w-5 mr-2" />
-                        California Transfer Data Overview
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-blue-600">{stats.colleges}</div>
-                            <div className="text-sm text-gray-600">Colleges</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-green-600">{stats.courses}</div>
-                            <div className="text-sm text-gray-600">Courses</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-purple-600">{stats.transferAgreements}</div>
-                            <div className="text-sm text-gray-600">Transfer Agreements</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-orange-600">{stats.geRequirements}</div>
-                            <div className="text-sm text-gray-600">GE Requirements</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-red-600">{stats.majorRequirements}</div>
-                            <div className="text-sm text-gray-600">Major Requirements</div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* College Types */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">UC Schools ({ucColleges.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {ucColleges.slice(0, 5).map(college => (
-                                <div key={college.id} className="flex items-center justify-between">
-                                    <span className="text-sm">{college.name}</span>
-                                    <Badge variant="outline" className="text-xs">{college.code}</Badge>
-                                </div>
-                            ))}
-                            {ucColleges.length > 5 && (
-                                <p className="text-xs text-gray-500">+{ucColleges.length - 5} more</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">CSU Schools ({csuColleges.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {csuColleges.slice(0, 5).map(college => (
-                                <div key={college.id} className="flex items-center justify-between">
-                                    <span className="text-sm">{college.name}</span>
-                                    <Badge variant="outline" className="text-xs">{college.code}</Badge>
-                                </div>
-                            ))}
-                            {csuColleges.length > 5 && (
-                                <p className="text-xs text-gray-500">+{csuColleges.length - 5} more</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Community Colleges ({cccColleges.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {cccColleges.slice(0, 5).map(college => (
-                                <div key={college.id} className="flex items-center justify-between">
-                                    <span className="text-sm">{college.name}</span>
-                                    <Badge variant="outline" className="text-xs">{college.code}</Badge>
-                                </div>
-                            ))}
-                            {cccColleges.length > 5 && (
-                                <p className="text-xs text-gray-500">+{cccColleges.length - 5} more</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Transfer Agreement Types */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Transfer Agreement Types</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div className="text-center p-4 border rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">852</div>
-                            <div className="text-sm text-gray-600">UC Transferable</div>
-                        </div>
-                        <div className="text-center p-4 border rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">983</div>
-                            <div className="text-sm text-gray-600">CSU Transferable</div>
-                        </div>
-                        <div className="text-center p-4 border rounded-lg">
-                            <div className="text-2xl font-bold text-purple-600">1,042</div>
-                            <div className="text-sm text-gray-600">IGETC Approved</div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Mock User Pathways (preserving existing functionality) */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Your Transfer Pathway Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {dashboardData?.transferPathways?.map((pathway: any) => (
-                            <div key={pathway.id} className="border rounded-lg p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <h3 className="font-semibold">{pathway.targetUniversity}</h3>
-                                        <p className="text-sm text-gray-600">{pathway.major}</p>
-                                    </div>
-                                    <Badge variant={pathway.guaranteedTransfer ? 'default' : 'secondary'}>
-                                        {pathway.guaranteedTransfer ? 'Guaranteed Transfer' : 'Competitive'}
-                                    </Badge>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <p className="text-gray-600">Requirements Met</p>
-                                        <p className="font-semibold">{pathway.requirementsMet}/{pathway.totalRequirements}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-600">Transfer Credits</p>
-                                        <p className="font-semibold">{pathway.estimatedTransferCredits}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Credit Transfer Validation</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-center py-8">
-                        <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">Validation Pending</h3>
-                        <p className="text-gray-600">
-                            Credit transfer validation will be available once you complete more coursework.
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    )
-}
 
 function RecommendationsTab({ dashboardData }: any) {
     return (
