@@ -54,6 +54,7 @@ import IntegratedOverview from '@/components/IntegratedOverview'
 import IntegratedProfileManagement from '@/components/IntegratedProfileManagement'
 import TransferPathwayBrowser from '@/components/TransferPathwayBrowser'
 import TransferApplicationTracker from '@/components/TransferApplicationTracker'
+import GPACalculator from '@/components/GPACalculator'
 import {
     colleges as assistColleges,
     transferAgreements as assistTransferAgreements,
@@ -813,8 +814,8 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
                 <TransferPathwayBrowser userId={user?.id} />
             )}
 
-            {activeTab === 'recommendations' && (
-                <RecommendationsTab dashboardData={dashboardData} />
+            {activeTab === 'gpa-calculator' && (
+                <GPACalculatorTab />
             )}
         </DashboardLayout>
     )
@@ -930,60 +931,10 @@ function OverviewTab({ dashboardData }: any) {
 
 
 
-function RecommendationsTab({ dashboardData }: any) {
+function GPACalculatorTab() {
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Personalized Recommendations</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <Alert>
-                            <TrendingUp className="h-4 w-4" />
-                            <AlertDescription>
-                                <strong>Focus on Core Requirements:</strong> Complete your math and English requirements first to strengthen your transfer application.
-                            </AlertDescription>
-                        </Alert>
-
-                        <Alert>
-                            <Clock className="h-4 w-4" />
-                            <AlertDescription>
-                                <strong>Course Timing:</strong> Consider taking heavier course loads in fall semesters when more sections are available.
-                            </AlertDescription>
-                        </Alert>
-
-                        <Alert>
-                            <Target className="h-4 w-4" />
-                            <AlertDescription>
-                                <strong>GPA Strategy:</strong> Maintain above 3.0 GPA to stay competitive for your target universities.
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Next Steps</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">1</div>
-                            <span>Register for recommended courses next semester</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <div className="w-6 h-6 rounded-full bg-gray-300 text-white text-xs flex items-center justify-center">2</div>
-                            <span>Meet with transfer counselor to review pathway</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <div className="w-6 h-6 rounded-full bg-gray-300 text-white text-xs flex items-center justify-center">3</div>
-                            <span>Begin university applications (6 months before target transfer)</span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+            <GPACalculator />
         </div>
     )
 }

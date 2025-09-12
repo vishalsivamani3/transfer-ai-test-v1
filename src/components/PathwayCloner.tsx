@@ -29,7 +29,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { TRANSFER_PATHWAYS, type TransferPathway } from '@/data/assist/transfer-pathways'
-import { useTransferData } from '@/contexts/TransferDataContext'
+import { useTransferData, validatePrerequisites } from '@/contexts/TransferDataContext'
 import { type AssistCourse } from '@/lib/api/types'
 
 interface PathwayClonerProps {
@@ -136,6 +136,15 @@ export default function PathwayCloner({ userId, onPathwayCloned }: PathwayCloner
                 course.courseCode.toLowerCase().startsWith(courseCode) ||
                 course.courseTitle.toLowerCase().includes(courseCode)
             )
+        }
+
+        // If we found a match, validate prerequisites
+        if (match && state.studentProfile) {
+            const validation = validatePrerequisites(match, state.studentProfile)
+            if (!validation.isValid) {
+                // Return null if prerequisites are not met
+                return null
+            }
         }
 
         return match || null
@@ -334,14 +343,49 @@ export default function PathwayCloner({ userId, onPathwayCloned }: PathwayCloner
                                                         </div>
 
                                                         {mapping.availableCourse ? (
-                                                            <div className="text-sm text-green-600 flex items-center gap-1">
-                                                                <CheckCircle className="h-3 w-3" />
-                                                                Mapped to: {mapping.availableCourse.courseCode} - {mapping.availableCourse.courseTitle}
+                                                            <div className="space-y-1">
+                                                                <div className="text-sm text-green-600 flex items-center gap-1">
+                                                                    <CheckCircle className="h-3 w-3" />
+                                                                    Mapped to: {mapping.availableCourse.courseCode} - {mapping.availableCourse.courseTitle}
+                                                                </div>
+                                                                {state.studentProfile && (() => {
+                                                                    const validation = validatePrerequisites(mapping.availableCourse!, state.studentProfile)
+                                                                    if (validation.warnings.length > 0) {
+                                                                        return (
+                                                                            <div className="text-xs text-orange-600">
+                                                                                ⚠️ {validation.warnings[0]}
+                                                                            </div>
+                                                                        )
+                                                                    }
+                                                                    return null
+                                                                })()}
                                                             </div>
                                                         ) : (
-                                                            <div className="text-sm text-red-600 flex items-center gap-1">
-                                                                <AlertCircle className="h-3 w-3" />
-                                                                No matching course found
+                                                            <div className="space-y-1">
+                                                                <div className="text-sm text-red-600 flex items-center gap-1">
+                                                                    <AlertCircle className="h-3 w-3" />
+                                                                    No matching course found
+                                                                </div>
+                                                                {state.studentProfile && (() => {
+                                                                    // Check if there's a course that exists but has unmet prerequisites
+                                                                    const normalizedName = mapping.pathwayCourse.toLowerCase()
+                                                                    const potentialMatch = state.courses.find(course =>
+                                                                        course.courseCode.toLowerCase() === normalizedName.split(' ')[0] ||
+                                                                        course.courseTitle.toLowerCase().includes(normalizedName) ||
+                                                                        normalizedName.includes(course.courseCode.toLowerCase())
+                                                                    )
+                                                                    if (potentialMatch) {
+                                                                        const validation = validatePrerequisites(potentialMatch, state.studentProfile)
+                                                                        if (!validation.isValid) {
+                                                                            return (
+                                                                                <div className="text-xs text-red-600">
+                                                                                    ❌ Missing prerequisites: {validation.missingPrerequisites.join(', ')}
+                                                                                </div>
+                                                                            )
+                                                                        }
+                                                                    }
+                                                                    return null
+                                                                })()}
                                                             </div>
                                                         )}
                                                     </div>

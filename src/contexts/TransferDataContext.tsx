@@ -22,6 +22,45 @@ export interface AssistCourse {
         type: string
     }
     transferAgreements: TransferAgreement[]
+    // Additional fields for enhanced filtering
+    professorName?: string
+    professorRating?: number
+    professorDifficulty?: number
+    professorWouldTakeAgain?: number
+    professorTotalRatings?: number
+    classTimes?: ClassTime[]
+    location?: string
+    capacity?: number
+    enrolled?: number
+    waitlistCount?: number
+    semester?: string
+    academicYear?: string
+    transferCredits?: boolean
+    transferNotes?: string
+    // Prerequisite tracking
+    prerequisites?: string[]
+    corequisites?: string[]
+    courseLevel?: 'introductory' | 'intermediate' | 'advanced' | 'graduate'
+    mathLevel?: number // 0 = no math, 1 = basic, 2 = algebra, 3 = precalc, 4 = calc1, 5 = calc2, 6 = calc3, 7 = advanced
+}
+
+export interface ClassTime {
+    days: string
+    startTime: string
+    endTime: string
+    type: string
+}
+
+export interface StudentAcademicProfile {
+    completedCourses: string[] // Course codes of completed courses
+    mathLevel: number // Current math level achieved
+    englishLevel: number // Current English level achieved
+    scienceLevel: number // Current science level achieved
+    transferCredits: number // Total transferable credits earned
+    gpa: number // Current GPA
+    targetMajor: string
+    targetUniversities: string[]
+    timeline: '1-year' | '2-year' | 'flexible'
 }
 
 export interface TransferAgreement {
@@ -109,6 +148,7 @@ interface TransferDataState {
     selectedCourses: AssistCourse[]
     selectedTransferPathways: TransferPathway[]
     activeSemesterPlan: SemesterPlan | null
+    studentProfile: StudentAcademicProfile | null
     searchResults: {
         courses: AssistCourse[]
         transferAgreements: TransferAgreement[]
@@ -123,6 +163,13 @@ interface TransferDataState {
         collegeType: string
         targetMajor: string
         targetUniversity: string
+        // New filters
+        transferability: string // 'all', 'transferable', 'non-transferable'
+        timeSlot: string // 'all', 'morning', 'afternoon', 'evening', 'online'
+        instructor: string // instructor name filter
+        minRating: string // minimum professor rating
+        maxDifficulty: string // maximum professor difficulty
+        availableSeats: string // 'all', 'available', 'waitlist-only'
     }
 
     // Loading states
@@ -151,6 +198,8 @@ type TransferDataAction =
     | { type: 'SET_TRANSFER_PATHWAYS'; payload: TransferPathway[] }
     | { type: 'SET_SEMESTER_PLANS'; payload: SemesterPlan[] }
     | { type: 'SET_ACTIVE_SEMESTER_PLAN'; payload: SemesterPlan | null }
+    | { type: 'SET_STUDENT_PROFILE'; payload: StudentAcademicProfile }
+    | { type: 'UPDATE_STUDENT_PROFILE'; payload: Partial<StudentAcademicProfile> }
     | { type: 'ADD_SELECTED_COURSE'; payload: AssistCourse }
     | { type: 'REMOVE_SELECTED_COURSE'; payload: number }
     | { type: 'CLEAR_SELECTED_COURSES' }
@@ -175,6 +224,7 @@ const initialState: TransferDataState = {
     selectedCourses: [],
     selectedTransferPathways: [],
     activeSemesterPlan: null,
+    studentProfile: null,
     searchResults: {
         courses: [],
         transferAgreements: [],
@@ -186,7 +236,14 @@ const initialState: TransferDataState = {
         transferType: 'any',
         collegeType: 'any',
         targetMajor: '',
-        targetUniversity: ''
+        targetUniversity: '',
+        // New filters
+        transferability: 'all',
+        timeSlot: 'all',
+        instructor: '',
+        minRating: 'any',
+        maxDifficulty: 'any',
+        availableSeats: 'all'
     },
     loading: {
         courses: false,
@@ -200,6 +257,100 @@ const initialState: TransferDataState = {
         transferPathways: null,
         semesterPlans: null
     }
+}
+
+// Prerequisite validation functions
+export function validatePrerequisites(course: AssistCourse, studentProfile: StudentAcademicProfile | null): {
+    isValid: boolean
+    missingPrerequisites: string[]
+    warnings: string[]
+} {
+    if (!studentProfile || !course.prerequisites || course.prerequisites.length === 0) {
+        return { isValid: true, missingPrerequisites: [], warnings: [] }
+    }
+
+    const missingPrerequisites: string[] = []
+    const warnings: string[] = []
+
+    // Check each prerequisite
+    course.prerequisites.forEach(prereq => {
+        // Check if student has completed the prerequisite course
+        const hasCompletedCourse = studentProfile.completedCourses.includes(prereq)
+
+        if (!hasCompletedCourse) {
+            // Check if it's a math prerequisite and student has equivalent math level
+            if (prereq.toLowerCase().includes('math') || prereq.toLowerCase().includes('calc')) {
+                const requiredMathLevel = getMathLevelFromPrerequisite(prereq)
+                if (studentProfile.mathLevel < requiredMathLevel) {
+                    missingPrerequisites.push(prereq)
+                }
+            } else {
+                missingPrerequisites.push(prereq)
+            }
+        }
+    })
+
+    // Check math level requirements
+    if (course.mathLevel && course.mathLevel > studentProfile.mathLevel) {
+        warnings.push(`This course requires math level ${course.mathLevel}, but you have level ${studentProfile.mathLevel}`)
+    }
+
+    // Check course level appropriateness
+    if (course.courseLevel === 'advanced' && studentProfile.transferCredits < 30) {
+        warnings.push('This is an advanced course. Consider taking introductory courses first.')
+    }
+
+    return {
+        isValid: missingPrerequisites.length === 0,
+        missingPrerequisites,
+        warnings
+    }
+}
+
+function getMathLevelFromPrerequisite(prereq: string): number {
+    const prereqLower = prereq.toLowerCase()
+
+    if (prereqLower.includes('calc iii') || prereqLower.includes('calc 3')) return 6
+    if (prereqLower.includes('calc ii') || prereqLower.includes('calc 2')) return 5
+    if (prereqLower.includes('calc i') || prereqLower.includes('calc 1')) return 4
+    if (prereqLower.includes('precalc') || prereqLower.includes('trig')) return 3
+    if (prereqLower.includes('algebra')) return 2
+    if (prereqLower.includes('math')) return 1
+
+    return 0
+}
+
+export function getRecommendedCoursesForStudent(
+    courses: AssistCourse[],
+    studentProfile: StudentAcademicProfile | null,
+    targetMajor: string
+): AssistCourse[] {
+    if (!studentProfile) return courses
+
+    return courses.filter(course => {
+        const validation = validatePrerequisites(course, studentProfile)
+
+        // Only include courses that are valid for the student
+        if (!validation.isValid) return false
+
+        // Filter by target major relevance
+        if (targetMajor && course.department) {
+            const majorLower = targetMajor.toLowerCase()
+            const deptLower = course.department.toLowerCase()
+
+            // Include courses relevant to the major
+            if (majorLower.includes('computer') && deptLower.includes('cs')) return true
+            if (majorLower.includes('math') && deptLower.includes('math')) return true
+            if (majorLower.includes('science') && (deptLower.includes('physics') || deptLower.includes('chem'))) return true
+            if (majorLower.includes('business') && deptLower.includes('business')) return true
+            if (majorLower.includes('english') && deptLower.includes('engl')) return true
+
+            // Include general education courses
+            if (deptLower.includes('engl') || deptLower.includes('math') || deptLower.includes('hist')) return true
+        }
+
+        return true
+    })
 }
 
 // Reducer
@@ -259,6 +410,21 @@ function transferDataReducer(state: TransferDataState, action: TransferDataActio
             return {
                 ...state,
                 activeSemesterPlan: action.payload
+            }
+
+        case 'SET_STUDENT_PROFILE':
+            return {
+                ...state,
+                studentProfile: action.payload
+            }
+
+        case 'UPDATE_STUDENT_PROFILE':
+            return {
+                ...state,
+                studentProfile: state.studentProfile ? {
+                    ...state.studentProfile,
+                    ...action.payload
+                } : null
             }
 
         case 'ADD_SELECTED_COURSE':
@@ -536,6 +702,15 @@ export function TransferDataProvider({ children }: { children: ReactNode }) {
             } catch (error) {
                 dispatch({ type: 'SET_ERROR', payload: { key: 'courses', value: 'Failed to load courses' } })
             }
+        },
+
+        // Student profile management
+        setStudentProfile: (profile: StudentAcademicProfile) => {
+            dispatch({ type: 'SET_STUDENT_PROFILE', payload: profile })
+        },
+
+        updateStudentProfile: (updates: Partial<StudentAcademicProfile>) => {
+            dispatch({ type: 'UPDATE_STUDENT_PROFILE', payload: updates })
         },
 
         loadTransferAgreements: async (filters?: any) => {

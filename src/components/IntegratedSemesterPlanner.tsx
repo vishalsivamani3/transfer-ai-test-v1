@@ -24,15 +24,17 @@ import {
     GraduationCap,
     School,
     ArrowRight,
-    GripVertical
+    GripVertical,
+    User
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTransferData, SemesterPlan, Semester, PlannedCourse, AssistCourse } from '@/contexts/TransferDataContext'
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, useDroppable } from '@dnd-kit/core'
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PathwayCloner from './PathwayCloner'
+import StudentProfileSetup from './StudentProfileSetup'
 
 interface IntegratedSemesterPlannerProps {
     userId?: string
@@ -93,6 +95,48 @@ function SortableCourseItem({ course, onRemove }: { course: PlannedCourse; onRem
     )
 }
 
+// Draggable Course Item Component
+function DraggableCourseItem({ course }: { course: AssistCourse }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        isDragging,
+    } = useDraggable({
+        id: course.id.toString(),
+    })
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        opacity: isDragging ? 0.5 : 1,
+    }
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className="bg-gray-50 border rounded-lg p-3 cursor-move hover:bg-gray-100 transition-colors"
+            {...attributes}
+            {...listeners}
+        >
+            <div className="flex justify-between items-start mb-2">
+                <h4 className="font-medium text-sm">{course.courseCode}</h4>
+                <Badge variant="outline" className="text-xs">
+                    {course.units} units
+                </Badge>
+            </div>
+            <p className="text-xs text-gray-600 mb-1">{course.courseTitle}</p>
+            <p className="text-xs text-gray-500">{course.college.name}</p>
+            {course.transferAgreements.length > 0 && (
+                <Badge variant="secondary" className="text-xs mt-1">
+                    Transferable
+                </Badge>
+            )}
+        </div>
+    )
+}
+
 // Selected Courses Drop Zone Component
 function SelectedCoursesDropZone() {
     const { state, actions } = useTransferData()
@@ -117,24 +161,7 @@ function SelectedCoursesDropZone() {
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {state.selectedCourses.map((course) => (
-                        <div
-                            key={course.id}
-                            className="bg-gray-50 border rounded-lg p-3 cursor-move hover:bg-gray-100 transition-colors"
-                        >
-                            <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-medium text-sm">{course.courseCode}</h4>
-                                <Badge variant="outline" className="text-xs">
-                                    {course.units} units
-                                </Badge>
-                            </div>
-                            <p className="text-xs text-gray-600 mb-1">{course.courseTitle}</p>
-                            <p className="text-xs text-gray-500">{course.college.name}</p>
-                            {course.transferAgreements.length > 0 && (
-                                <Badge variant="secondary" className="text-xs mt-1">
-                                    Transferable
-                                </Badge>
-                            )}
-                        </div>
+                        <DraggableCourseItem key={course.id} course={course} />
                     ))}
                 </div>
             </CardContent>
@@ -205,6 +232,7 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
         timeline: '2-year' as '1-year' | '2-year'
     })
     const [activeId, setActiveId] = useState<string | null>(null)
+    const [showProfileSetup, setShowProfileSetup] = useState(false)
 
     // Load semester plans on mount
     useEffect(() => {
@@ -377,7 +405,6 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
         toast.success('Course removed from semester')
     }
 
-
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -388,74 +415,80 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
                         Plan your transfer journey with drag & drop course scheduling
                     </p>
                 </div>
-                <Dialog open={showCreatePlan} onOpenChange={setShowCreatePlan}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create New Plan
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Create New Semester Plan</DialogTitle>
-                            <DialogDescription>
-                                Set up a new transfer plan with your target major and timeline
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor="plan-name">Plan Name</Label>
-                                <Input
-                                    id="plan-name"
-                                    value={newPlanData.name}
-                                    onChange={(e) => setNewPlanData({ ...newPlanData, name: e.target.value })}
-                                    placeholder="My Transfer Plan"
-                                />
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowProfileSetup(true)}>
+                        <User className="h-4 w-4 mr-2" />
+                        Set Up Profile
+                    </Button>
+                    <Dialog open={showCreatePlan} onOpenChange={setShowCreatePlan}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create New Plan
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Create New Semester Plan</DialogTitle>
+                                <DialogDescription>
+                                    Set up a new transfer plan with your target major and timeline
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="plan-name">Plan Name</Label>
+                                    <Input
+                                        id="plan-name"
+                                        value={newPlanData.name}
+                                        onChange={(e) => setNewPlanData({ ...newPlanData, name: e.target.value })}
+                                        placeholder="My Transfer Plan"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="target-major">Target Major</Label>
+                                    <Input
+                                        id="target-major"
+                                        value={newPlanData.targetMajor}
+                                        onChange={(e) => setNewPlanData({ ...newPlanData, targetMajor: e.target.value })}
+                                        placeholder="e.g., Computer Science"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="timeline">Transfer Timeline</Label>
+                                    <Select value={newPlanData.timeline} onValueChange={(value: any) => setNewPlanData({ ...newPlanData, timeline: value })}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1-year">1 Year</SelectItem>
+                                            <SelectItem value="2-year">2 Years</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="target-universities">Target Universities (optional)</Label>
+                                    <Textarea
+                                        id="target-universities"
+                                        value={newPlanData.targetUniversities.join(', ')}
+                                        onChange={(e) => setNewPlanData({
+                                            ...newPlanData,
+                                            targetUniversities: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                                        })}
+                                        placeholder="e.g., UC Berkeley, UCLA, Stanford"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => setShowCreatePlan(false)}>
+                                        Cancel
+                                    </Button>
+                                    <Button onClick={handleCreatePlan}>
+                                        Create Plan
+                                    </Button>
+                                </div>
                             </div>
-                            <div>
-                                <Label htmlFor="target-major">Target Major</Label>
-                                <Input
-                                    id="target-major"
-                                    value={newPlanData.targetMajor}
-                                    onChange={(e) => setNewPlanData({ ...newPlanData, targetMajor: e.target.value })}
-                                    placeholder="e.g., Computer Science"
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="timeline">Transfer Timeline</Label>
-                                <Select value={newPlanData.timeline} onValueChange={(value: any) => setNewPlanData({ ...newPlanData, timeline: value })}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="1-year">1 Year</SelectItem>
-                                        <SelectItem value="2-year">2 Years</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label htmlFor="target-universities">Target Universities (optional)</Label>
-                                <Textarea
-                                    id="target-universities"
-                                    value={newPlanData.targetUniversities.join(', ')}
-                                    onChange={(e) => setNewPlanData({
-                                        ...newPlanData,
-                                        targetUniversities: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                                    })}
-                                    placeholder="e.g., UC Berkeley, UCLA, Stanford"
-                                />
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setShowCreatePlan(false)}>
-                                    Cancel
-                                </Button>
-                                <Button onClick={handleCreatePlan}>
-                                    Create Plan
-                                </Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
             {/* Pathway Cloner */}
@@ -527,18 +560,20 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
                 </Card>
             )}
 
-            {/* Selected Courses (Draggable) */}
-            {state.selectedCourses.length > 0 && (
-                <SelectedCoursesDropZone />
-            )}
 
-            {/* Semester Plan */}
-            {state.activeSemesterPlan ? (
-                <DndContext
-                    collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                >
+            {/* Drag and Drop Context */}
+            <DndContext
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+            >
+                {/* Selected Courses (Draggable) */}
+                {state.selectedCourses.length > 0 && (
+                    <SelectedCoursesDropZone />
+                )}
+
+                {/* Semester Plan */}
+                {state.activeSemesterPlan ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {state.activeSemesterPlan.semesters.map((semester) => (
                             <SemesterCard
@@ -549,27 +584,41 @@ export default function IntegratedSemesterPlanner({ userId }: IntegratedSemester
                             />
                         ))}
                     </div>
-                    <DragOverlay>
-                        {activeId ? (
-                            <div className="bg-white border rounded-lg p-3 shadow-lg">
-                                <p className="font-medium text-sm">Dragging course...</p>
-                            </div>
-                        ) : null}
-                    </DragOverlay>
-                </DndContext>
-            ) : (
-                <Card>
-                    <CardContent className="text-center py-12">
-                        <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No Active Semester Plan</h3>
-                        <p className="text-gray-600 mb-4">Create a new semester plan to start planning your transfer journey</p>
-                        <Button onClick={() => setShowCreatePlan(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Your First Plan
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
+                ) : (
+                    <Card>
+                        <CardContent className="text-center py-12">
+                            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No Active Semester Plan</h3>
+                            <p className="text-gray-600 mb-4">Create a new semester plan to start planning your transfer journey</p>
+                            <Button onClick={() => setShowCreatePlan(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Your First Plan
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <DragOverlay>
+                    {activeId ? (
+                        <div className="bg-white border rounded-lg p-3 shadow-lg">
+                            <p className="font-medium text-sm">Dragging course...</p>
+                        </div>
+                    ) : null}
+                </DragOverlay>
+            </DndContext>
+
+            {/* Student Profile Setup Dialog */}
+            <Dialog open={showProfileSetup} onOpenChange={setShowProfileSetup}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Academic Profile Setup</DialogTitle>
+                        <DialogDescription>
+                            Set up your academic profile to get better course recommendations and avoid prerequisite issues
+                        </DialogDescription>
+                    </DialogHeader>
+                    <StudentProfileSetup onComplete={() => setShowProfileSetup(false)} />
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

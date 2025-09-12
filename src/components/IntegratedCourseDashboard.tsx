@@ -33,7 +33,11 @@ import {
     Plus,
     Minus,
     Target,
-    GraduationCap
+    GraduationCap,
+    User,
+    Calendar,
+    Award,
+    Zap
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTransferData, AssistCourse } from '@/contexts/TransferDataContext'
@@ -46,7 +50,7 @@ interface IntegratedCourseDashboardProps {
 export default function IntegratedCourseDashboard({ studentInstitution, userId }: IntegratedCourseDashboardProps) {
     const { state, actions } = useTransferData()
     const [searchQuery, setSearchQuery] = useState('')
-    const [sortBy, setSortBy] = useState<'courseCode' | 'courseTitle' | 'department' | 'units'>('courseCode')
+    const [sortBy, setSortBy] = useState<'courseCode' | 'courseTitle' | 'department' | 'units' | 'professorRating' | 'professorDifficulty' | 'availableSeats' | 'transferability'>('courseCode')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
     const [activeTab, setActiveTab] = useState('browse')
 
@@ -103,6 +107,74 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
             )
         }
 
+        // New filters
+        if (state.filters.transferability && state.filters.transferability !== 'all') {
+            courses = courses.filter(course => {
+                if (state.filters.transferability === 'transferable') {
+                    return course.transferCredits === true || course.transferAgreements.length > 0
+                } else if (state.filters.transferability === 'non-transferable') {
+                    return course.transferCredits === false && course.transferAgreements.length === 0
+                }
+                return true
+            })
+        }
+
+        if (state.filters.timeSlot && state.filters.timeSlot !== 'all') {
+            courses = courses.filter(course => {
+                if (!course.classTimes || course.classTimes.length === 0) return false
+
+                return course.classTimes.some(timeSlot => {
+                    const startHour = parseInt(timeSlot.startTime.split(':')[0])
+                    switch (state.filters.timeSlot) {
+                        case 'morning':
+                            return startHour >= 6 && startHour < 12
+                        case 'afternoon':
+                            return startHour >= 12 && startHour < 17
+                        case 'evening':
+                            return startHour >= 17 && startHour < 22
+                        case 'online':
+                            return timeSlot.type.toLowerCase().includes('online') || timeSlot.type.toLowerCase().includes('virtual')
+                        default:
+                            return true
+                    }
+                })
+            })
+        }
+
+        if (state.filters.instructor) {
+            courses = courses.filter(course =>
+                course.professorName?.toLowerCase().includes(state.filters.instructor.toLowerCase())
+            )
+        }
+
+        if (state.filters.minRating && state.filters.minRating !== 'any') {
+            const minRating = parseFloat(state.filters.minRating)
+            courses = courses.filter(course =>
+                course.professorRating && course.professorRating >= minRating
+            )
+        }
+
+        if (state.filters.maxDifficulty && state.filters.maxDifficulty !== 'any') {
+            const maxDifficulty = parseFloat(state.filters.maxDifficulty)
+            courses = courses.filter(course =>
+                course.professorDifficulty && course.professorDifficulty <= maxDifficulty
+            )
+        }
+
+        if (state.filters.availableSeats && state.filters.availableSeats !== 'all') {
+            courses = courses.filter(course => {
+                if (!course.capacity || !course.enrolled) return false
+                const availableSeats = course.capacity - course.enrolled
+
+                if (state.filters.availableSeats === 'available') {
+                    return availableSeats > 0
+                } else if (state.filters.availableSeats === 'waitlist-only') {
+                    return availableSeats <= 0 && course.waitlistCount !== undefined
+                }
+                return true
+            })
+        }
+
         // Sort courses
         courses.sort((a, b) => {
             let aValue: any, bValue: any
@@ -123,6 +195,26 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                 case 'units':
                     aValue = a.units || 0
                     bValue = b.units || 0
+                    break
+                case 'professorRating':
+                    aValue = a.professorRating || 0
+                    bValue = b.professorRating || 0
+                    break
+                case 'professorDifficulty':
+                    aValue = a.professorDifficulty || 0
+                    bValue = b.professorDifficulty || 0
+                    break
+                case 'availableSeats':
+                    const aAvailable = (a.capacity || 0) - (a.enrolled || 0)
+                    const bAvailable = (b.capacity || 0) - (b.enrolled || 0)
+                    aValue = aAvailable
+                    bValue = bAvailable
+                    break
+                case 'transferability':
+                    const aTransferable = a.transferCredits === true || a.transferAgreements.length > 0
+                    const bTransferable = b.transferCredits === true || b.transferAgreements.length > 0
+                    aValue = aTransferable ? 1 : 0
+                    bValue = bTransferable ? 1 : 0
                     break
                 default:
                     aValue = a.courseCode
@@ -171,7 +263,8 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                         Search & Filter Courses
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
+                    {/* Search and Basic Filters */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <Label htmlFor="search">Search Courses</Label>
@@ -200,6 +293,128 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                         </div>
 
                         <div>
+                            <Label htmlFor="instructor">Instructor</Label>
+                            <Input
+                                id="instructor"
+                                placeholder="e.g., Dr. Smith"
+                                value={state.filters.instructor}
+                                onChange={(e) => handleFilterChange('instructor', e.target.value)}
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="sort">Sort By</Label>
+                            <div className="flex gap-2">
+                                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="courseCode">Course Code</SelectItem>
+                                        <SelectItem value="courseTitle">Course Title</SelectItem>
+                                        <SelectItem value="department">Department</SelectItem>
+                                        <SelectItem value="units">Units</SelectItem>
+                                        <SelectItem value="professorRating">Professor Rating</SelectItem>
+                                        <SelectItem value="professorDifficulty">Professor Difficulty</SelectItem>
+                                        <SelectItem value="availableSeats">Available Seats</SelectItem>
+                                        <SelectItem value="transferability">Transferability</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    className="px-3"
+                                >
+                                    {sortOrder === 'asc' ? (
+                                        <TrendingUp className="h-4 w-4" />
+                                    ) : (
+                                        <TrendingDown className="h-4 w-4" />
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Advanced Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                        <div>
+                            <Label htmlFor="transferability">Transferability</Label>
+                            <Select value={state.filters.transferability} onValueChange={(value) => handleFilterChange('transferability', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All courses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All courses</SelectItem>
+                                    <SelectItem value="transferable">Transferable only</SelectItem>
+                                    <SelectItem value="non-transferable">Non-transferable only</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="time-slot">Time Slot</Label>
+                            <Select value={state.filters.timeSlot} onValueChange={(value) => handleFilterChange('timeSlot', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Any time" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Any time</SelectItem>
+                                    <SelectItem value="morning">Morning (6AM-12PM)</SelectItem>
+                                    <SelectItem value="afternoon">Afternoon (12PM-5PM)</SelectItem>
+                                    <SelectItem value="evening">Evening (5PM-10PM)</SelectItem>
+                                    <SelectItem value="online">Online/Virtual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="min-rating">Min Rating</Label>
+                            <Select value={state.filters.minRating} onValueChange={(value) => handleFilterChange('minRating', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Any rating" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="any">Any rating</SelectItem>
+                                    <SelectItem value="3.0">3.0+ stars</SelectItem>
+                                    <SelectItem value="3.5">3.5+ stars</SelectItem>
+                                    <SelectItem value="4.0">4.0+ stars</SelectItem>
+                                    <SelectItem value="4.5">4.5+ stars</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="max-difficulty">Max Difficulty</Label>
+                            <Select value={state.filters.maxDifficulty} onValueChange={(value) => handleFilterChange('maxDifficulty', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Any difficulty" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="any">Any difficulty</SelectItem>
+                                    <SelectItem value="2.0">Very Easy (≤2.0)</SelectItem>
+                                    <SelectItem value="2.5">Easy (≤2.5)</SelectItem>
+                                    <SelectItem value="3.0">Moderate (≤3.0)</SelectItem>
+                                    <SelectItem value="3.5">Challenging (≤3.5)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="available-seats">Availability</Label>
+                            <Select value={state.filters.availableSeats} onValueChange={(value) => handleFilterChange('availableSeats', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All courses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All courses</SelectItem>
+                                    <SelectItem value="available">Available seats</SelectItem>
+                                    <SelectItem value="waitlist-only">Waitlist only</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
                             <Label htmlFor="transfer-type">Transfer Type</Label>
                             <Select value={state.filters.transferType} onValueChange={(value) => handleFilterChange('transferType', value)}>
                                 <SelectTrigger>
@@ -210,21 +425,6 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                                     <SelectItem value="UC_TRANSFERABLE">UC Transferable</SelectItem>
                                     <SelectItem value="CSU_TRANSFERABLE">CSU Transferable</SelectItem>
                                     <SelectItem value="IGETC_APPROVED">IGETC Approved</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="sort">Sort By</Label>
-                            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="courseCode">Course Code</SelectItem>
-                                    <SelectItem value="courseTitle">Course Title</SelectItem>
-                                    <SelectItem value="department">Department</SelectItem>
-                                    <SelectItem value="units">Units</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -282,73 +482,166 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Course</TableHead>
-                                            <TableHead>Title</TableHead>
-                                            <TableHead>Department</TableHead>
-                                            <TableHead>College</TableHead>
-                                            <TableHead>Units</TableHead>
-                                            <TableHead>Transfer Info</TableHead>
-                                            <TableHead>Action</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredCourses.map((course) => {
-                                            const isSelected = state.selectedCourses.some(c => c.id === course.id)
-                                            return (
-                                                <TableRow key={course.id}>
-                                                    <TableCell className="font-medium">{course.courseCode}</TableCell>
-                                                    <TableCell>{course.courseTitle}</TableCell>
-                                                    <TableCell>{course.department || 'N/A'}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge variant="outline" className="text-xs">
-                                                                {course.college.type}
-                                                            </Badge>
-                                                            <span className="text-sm">{course.college.name}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{course.units || 'N/A'}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {course.transferAgreements.slice(0, 2).map((agreement) => (
-                                                                <Badge key={agreement.id} variant="secondary" className="text-xs">
-                                                                    {agreement.transferType ? agreement.transferType.replace('_', ' ') : 'Transfer'}
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Course</TableHead>
+                                                <TableHead>Title</TableHead>
+                                                <TableHead>Department</TableHead>
+                                                <TableHead>College</TableHead>
+                                                <TableHead>Units</TableHead>
+                                                <TableHead>Professor</TableHead>
+                                                <TableHead>Rating</TableHead>
+                                                <TableHead>Schedule</TableHead>
+                                                <TableHead>Availability</TableHead>
+                                                <TableHead>Transfer Info</TableHead>
+                                                <TableHead>Action</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredCourses.map((course) => {
+                                                const isSelected = state.selectedCourses.some(c => c.id === course.id)
+                                                const availableSeats = (course.capacity || 0) - (course.enrolled || 0)
+                                                const isTransferable = course.transferCredits === true || course.transferAgreements.length > 0
+
+                                                return (
+                                                    <TableRow key={course.id}>
+                                                        <TableCell className="font-medium">{course.courseCode}</TableCell>
+                                                        <TableCell className="max-w-xs">
+                                                            <div className="truncate" title={course.courseTitle}>
+                                                                {course.courseTitle}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>{course.department || 'N/A'}</TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    {course.college.type}
                                                                 </Badge>
-                                                            ))}
-                                                            {course.transferAgreements.length > 2 && (
-                                                                <Badge variant="secondary" className="text-xs">
-                                                                    +{course.transferAgreements.length - 2}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={isSelected ? "destructive" : "default"}
-                                                            onClick={() => handleCourseSelect(course)}
-                                                        >
-                                                            {isSelected ? (
-                                                                <>
-                                                                    <Minus className="h-3 w-3 mr-1" />
-                                                                    Remove
-                                                                </>
+                                                                <span className="text-sm truncate max-w-24" title={course.college.name}>
+                                                                    {course.college.name}
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>{course.units || 'N/A'}</TableCell>
+                                                        <TableCell>
+                                                            {course.professorName ? (
+                                                                <div className="text-sm">
+                                                                    <div className="font-medium truncate max-w-24" title={course.professorName}>
+                                                                        {course.professorName}
+                                                                    </div>
+                                                                    {course.professorTotalRatings && (
+                                                                        <div className="text-xs text-gray-500">
+                                                                            {course.professorTotalRatings} reviews
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             ) : (
-                                                                <>
-                                                                    <Plus className="h-3 w-3 mr-1" />
-                                                                    Add
-                                                                </>
+                                                                <span className="text-gray-400 text-sm">TBA</span>
                                                             )}
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        })}
-                                    </TableBody>
-                                </Table>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {course.professorRating ? (
+                                                                <div className="flex items-center gap-1">
+                                                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                                                    <span className="text-sm font-medium">{course.professorRating}</span>
+                                                                    {course.professorDifficulty && (
+                                                                        <div className="text-xs text-gray-500">
+                                                                            ({course.professorDifficulty}/5)
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-gray-400 text-sm">N/A</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {course.classTimes && course.classTimes.length > 0 ? (
+                                                                <div className="text-xs space-y-1">
+                                                                    {course.classTimes.slice(0, 2).map((time, index) => (
+                                                                        <div key={index} className="flex items-center gap-1">
+                                                                            <Clock className="h-3 w-3" />
+                                                                            <span>{time.days} {time.startTime}-{time.endTime}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {course.classTimes.length > 2 && (
+                                                                        <div className="text-gray-500">+{course.classTimes.length - 2} more</div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-gray-400 text-sm">TBA</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {course.capacity && course.enrolled !== undefined ? (
+                                                                <div className="text-sm">
+                                                                    <div className={`font-medium ${availableSeats > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                                        {availableSeats > 0 ? `${availableSeats} available` : 'Full'}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500">
+                                                                        {course.enrolled}/{course.capacity}
+                                                                    </div>
+                                                                    {course.waitlistCount && course.waitlistCount > 0 && (
+                                                                        <div className="text-xs text-orange-600">
+                                                                            {course.waitlistCount} on waitlist
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-gray-400 text-sm">N/A</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {isTransferable ? (
+                                                                    <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                                                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                                                        Transferable
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant="secondary" className="text-xs">
+                                                                        <XCircle className="h-3 w-3 mr-1" />
+                                                                        Non-transferable
+                                                                    </Badge>
+                                                                )}
+                                                                {course.transferAgreements.slice(0, 1).map((agreement) => (
+                                                                    <Badge key={agreement.id} variant="outline" className="text-xs">
+                                                                        {agreement.transferType ? agreement.transferType.replace('_', ' ') : 'Transfer'}
+                                                                    </Badge>
+                                                                ))}
+                                                                {course.transferAgreements.length > 1 && (
+                                                                    <Badge variant="outline" className="text-xs">
+                                                                        +{course.transferAgreements.length - 1}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Button
+                                                                size="sm"
+                                                                variant={isSelected ? "destructive" : "default"}
+                                                                onClick={() => handleCourseSelect(course)}
+                                                            >
+                                                                {isSelected ? (
+                                                                    <>
+                                                                        <Minus className="h-3 w-3 mr-1" />
+                                                                        Remove
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Plus className="h-3 w-3 mr-1" />
+                                                                        Add
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </CardContent>
                         </Card>
                     )}

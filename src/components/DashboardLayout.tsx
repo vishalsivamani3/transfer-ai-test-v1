@@ -36,7 +36,7 @@ const sidebarItems = [
     { id: 'planner', label: 'Planner', icon: Calendar, description: 'Semester planner' },
     { id: 'applications', label: 'Applications', icon: Target, description: 'Track transfer applications' },
     { id: 'pathways', label: 'Pathways', icon: TrendingUp, description: 'Transfer pathways' },
-    { id: 'recommendations', label: 'Recommendations', icon: FileText, description: 'Course recommendations' },
+    { id: 'gpa-calculator', label: 'GPA Calculator', icon: FileText, description: 'Calculate your transfer GPA' },
 ]
 
 export default function DashboardLayout({

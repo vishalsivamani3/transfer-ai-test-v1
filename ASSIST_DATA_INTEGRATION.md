@@ -172,6 +172,6 @@ Your CCNav platform now has access to real California college transfer data. Sta
 
 ---
 
-**Demo Page**: `http://localhost:3000/assist-demo`  
+**Demo Page**: `irhttp://localhost:3000/assist-demo`  
 **Data Location**: `src/data/assist/`  
 **Last Updated**: September 7, 2025
