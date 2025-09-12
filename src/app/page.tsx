@@ -58,6 +58,7 @@ import GPACalculator from '@/components/GPACalculator'
 import FinancialCostCalculator from '@/components/FinancialCostCalculator'
 import BudgetingTableau from '@/components/BudgetingTableau'
 import CourseAffordabilityInsights from '@/components/CourseAffordabilityInsights'
+import { ProfileSetupFlow } from '@/components/auth'
 import {
     colleges as assistColleges,
     transferAgreements as assistTransferAgreements,
@@ -70,10 +71,11 @@ export default function TransferAI() {
     const { state: authState, actions: authActions } = useAuth()
     const [user, setUser] = useState<UserType | null>(null)
     const [loading, setLoading] = useState(true)
-    const [currentView, setCurrentView] = useState<'login' | 'signup' | 'onboarding' | 'dashboard' | 'docs'>('login')
+    const [currentView, setCurrentView] = useState<'login' | 'signup' | 'onboarding' | 'dashboard' | 'docs' | 'profile-setup'>('login')
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
     const [error, setError] = useState('')
     const [activeTab, setActiveTab] = useState('overview')
+    const [showProfileSetup, setShowProfileSetup] = useState(false)
 
     useEffect(() => {
         console.log('TransferAI component mounted')
@@ -94,7 +96,16 @@ export default function TransferAI() {
                 }
             }
             setUser(userData)
-            if (authState.session?.access_token) {
+
+            // Check if user needs profile setup
+            const needsProfileSetup = !userData.user_metadata.currentCollege ||
+                !userData.user_metadata.academicYear ||
+                !userData.user_metadata.firstName ||
+                !userData.user_metadata.lastName
+
+            if (needsProfileSetup) {
+                setCurrentView('profile-setup')
+            } else if (authState.session?.access_token) {
                 loadDashboardData(authState.session.access_token, userData)
             }
         } else {
@@ -223,7 +234,18 @@ export default function TransferAI() {
             }
 
             setUser(mockUser)
-            await loadDashboardData('mock-token', mockUser)
+
+            // Check if user needs profile setup
+            const needsProfileSetup = !mockUser.user_metadata.currentCollege ||
+                !mockUser.user_metadata.academicYear ||
+                !mockUser.user_metadata.firstName ||
+                !mockUser.user_metadata.lastName
+
+            if (needsProfileSetup) {
+                setCurrentView('profile-setup')
+            } else {
+                await loadDashboardData('mock-token', mockUser)
+            }
         } catch (error) {
             console.error('Login error:', error)
             setError('Login failed')
@@ -310,6 +332,24 @@ export default function TransferAI() {
                 onComplete={handleCompleteOnboarding}
                 error={error}
             />
+        }
+
+        if (currentView === 'profile-setup') {
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                    <ProfileSetupFlow
+                        onComplete={(profileData) => {
+                            setShowProfileSetup(false)
+                            setCurrentView('dashboard')
+                        }}
+                        onSkip={() => {
+                            setShowProfileSetup(false)
+                            setCurrentView('dashboard')
+                        }}
+                        isNewUser={true}
+                    />
+                </div>
+            )
         }
 
         if (!dashboardData) {

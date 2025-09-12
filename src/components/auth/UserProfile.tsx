@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SettingsModal } from './SettingsModal'
+import SettingsManagement from './SettingsManagement'
 import { toast } from 'sonner'
 
 interface UserProfileProps {
@@ -45,6 +46,7 @@ export function UserProfile({
     const { state, actions } = useAuth()
     const [isSigningOut, setIsSigningOut] = useState(false)
     const [showSettings, setShowSettings] = useState(false)
+    const [showSettingsManagement, setShowSettingsManagement] = useState(false)
 
     const user = state.user
     const userMetadata = user?.user_metadata || {}
@@ -176,7 +178,7 @@ export function UserProfile({
                         <span>Edit Profile</span>
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem onClick={() => setShowSettings(true)}>
+                    <DropdownMenuItem onClick={() => setShowSettingsManagement(true)}>
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Settings</span>
                     </DropdownMenuItem>
@@ -198,6 +200,14 @@ export function UserProfile({
                 isOpen={showSettings}
                 onClose={() => setShowSettings(false)}
             />
+
+            {showSettingsManagement && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <SettingsManagement onClose={() => setShowSettingsManagement(false)} />
+                    </div>
+                </div>
+            )}
         </>
     )
 }

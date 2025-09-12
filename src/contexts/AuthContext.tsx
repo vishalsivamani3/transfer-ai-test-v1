@@ -19,6 +19,7 @@ interface AuthState {
 interface AuthActions {
     signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
     signUp: (email: string, password: string, metadata?: any) => Promise<{ success: boolean; error?: string }>
+    signInWithGoogle: () => Promise<{ success: boolean; error?: string }>
     signOut: () => Promise<void>
     resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
     updateProfile: (updates: any) => Promise<{ success: boolean; error?: string }>
@@ -177,6 +178,32 @@ export function AuthProvider({ children, fallbackUser }: AuthProviderProps) {
                     return { success: false, error: error.message }
                 }
 
+                setState(prev => ({ ...prev, loading: false }))
+                return { success: true }
+            } catch (error) {
+                const authError = error as AuthError
+                setState(prev => ({ ...prev, loading: false, error: authError }))
+                return { success: false, error: authError.message }
+            }
+        },
+
+        signInWithGoogle: async () => {
+            try {
+                setState(prev => ({ ...prev, loading: true, error: null }))
+
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: `${window.location.origin}/auth/callback`
+                    }
+                })
+
+                if (error) {
+                    setState(prev => ({ ...prev, loading: false, error }))
+                    return { success: false, error: error.message }
+                }
+
+                // Note: OAuth redirects, so we won't reach here
                 setState(prev => ({ ...prev, loading: false }))
                 return { success: true }
             } catch (error) {

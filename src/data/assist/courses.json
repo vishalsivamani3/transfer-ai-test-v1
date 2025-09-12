@@ -42,5 +42,126 @@
     "department": "Mathematics",
     "createdAt": "2025-09-11T23:58:42.088286",
     "updatedAt": "2025-09-11T23:58:42.088287"
+  },
+  {
+    "id": 5,
+    "collegeId": 1,
+    "courseCode": "MATH 250",
+    "courseTitle": "Calculus III",
+    "units": 4.0,
+    "description": "Multivariable calculus and vector analysis",
+    "department": "Mathematics",
+    "createdAt": "2025-09-11T23:58:42.088288",
+    "updatedAt": "2025-09-11T23:58:42.088289"
+  },
+  {
+    "id": 6,
+    "collegeId": 1,
+    "courseCode": "MATH 252",
+    "courseTitle": "Linear Algebra",
+    "units": 3.0,
+    "description": "Introduction to linear algebra and matrix theory",
+    "department": "Mathematics",
+    "createdAt": "2025-09-11T23:58:42.088290",
+    "updatedAt": "2025-09-11T23:58:42.088291"
+  },
+  {
+    "id": 7,
+    "collegeId": 1,
+    "courseCode": "CS 101",
+    "courseTitle": "Programming Fundamentals",
+    "units": 4.0,
+    "description": "Introduction to computer programming and problem solving",
+    "department": "Computer Science",
+    "createdAt": "2025-09-11T23:58:42.088292",
+    "updatedAt": "2025-09-11T23:58:42.088293"
+  },
+  {
+    "id": 8,
+    "collegeId": 1,
+    "courseCode": "CS 102",
+    "courseTitle": "Data Structures",
+    "units": 4.0,
+    "description": "Fundamental data structures and algorithms",
+    "department": "Computer Science",
+    "createdAt": "2025-09-11T23:58:42.088294",
+    "updatedAt": "2025-09-11T23:58:42.088295"
+  },
+  {
+    "id": 9,
+    "collegeId": 1,
+    "courseCode": "CS 201",
+    "courseTitle": "Computer Organization",
+    "units": 3.0,
+    "description": "Computer architecture and organization",
+    "department": "Computer Science",
+    "createdAt": "2025-09-11T23:58:42.088296",
+    "updatedAt": "2025-09-11T23:58:42.088297"
+  },
+  {
+    "id": 10,
+    "collegeId": 1,
+    "courseCode": "CS 202",
+    "courseTitle": "Algorithms",
+    "units": 3.0,
+    "description": "Design and analysis of algorithms",
+    "department": "Computer Science",
+    "createdAt": "2025-09-11T23:58:42.088298",
+    "updatedAt": "2025-09-11T23:58:42.088299"
+  },
+  {
+    "id": 11,
+    "collegeId": 1,
+    "courseCode": "CS 203",
+    "courseTitle": "Software Engineering",
+    "units": 3.0,
+    "description": "Software development methodologies and practices",
+    "department": "Computer Science",
+    "createdAt": "2025-09-11T23:58:42.088300",
+    "updatedAt": "2025-09-11T23:58:42.088301"
+  },
+  {
+    "id": 12,
+    "collegeId": 1,
+    "courseCode": "PHYS 101",
+    "courseTitle": "Physics I",
+    "units": 4.0,
+    "description": "Mechanics, waves, and thermodynamics",
+    "department": "Physics",
+    "createdAt": "2025-09-11T23:58:42.088302",
+    "updatedAt": "2025-09-11T23:58:42.088303"
+  },
+  {
+    "id": 13,
+    "collegeId": 1,
+    "courseCode": "PHYS 102",
+    "courseTitle": "Physics II",
+    "units": 4.0,
+    "description": "Electricity, magnetism, and optics",
+    "department": "Physics",
+    "createdAt": "2025-09-11T23:58:42.088304",
+    "updatedAt": "2025-09-11T23:58:42.088305"
+  },
+  {
+    "id": 14,
+    "collegeId": 1,
+    "courseCode": "ENGL 101",
+    "courseTitle": "Composition",
+    "units": 3.0,
+    "description": "College-level writing and composition",
+    "department": "English",
+    "createdAt": "2025-09-11T23:58:42.088306",
+    "updatedAt": "2025-09-11T23:58:42.088307"
+  },
+  {
+    "id": 15,
+    "collegeId": 1,
+    "courseCode": "ENGL 102",
+    "courseTitle": "Critical Thinking",
+    "units": 3.0,
+    "description": "Critical thinking and argumentation",
+    "department": "English",
+    "createdAt": "2025-09-11T23:58:42.088308",
+    "updatedAt": "2025-09-11T23:58:42.088309"
   }
 ]

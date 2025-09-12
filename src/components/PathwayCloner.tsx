@@ -71,34 +71,40 @@ export default function PathwayCloner({ userId, onPathwayCloned }: PathwayCloner
         if (!selectedPathway) return
 
         const mappings: CourseMapping[] = []
+        let semesterCounter = 0
+        const semesters = ['Year 1, Fall', 'Year 1, Spring', 'Year 2, Fall', 'Year 2, Spring', 'Year 3, Fall', 'Year 3, Spring']
 
         // Process required courses from all target universities
         selectedPathway.targetUniversities.forEach(uni => {
-            uni.requirements.requiredCourses.forEach(courseName => {
+            uni.requirements.requiredCourses.forEach((courseName, index) => {
                 const availableCourse = findMatchingCourse(courseName)
+                const semester = semesters[Math.min(semesterCounter % semesters.length, semesters.length - 1)]
                 mappings.push({
                     pathwayCourse: courseName,
                     availableCourse,
                     isRequired: true,
                     isRecommended: false,
-                    semester: 'Year 1, Fall'
+                    semester: semester
                 })
+                semesterCounter++
             })
 
             // Process recommended courses
-            uni.requirements.recommendedCourses.forEach(courseName => {
+            uni.requirements.recommendedCourses.forEach((courseName, index) => {
                 const availableCourse = findMatchingCourse(courseName)
+                const semester = semesters[Math.min(semesterCounter % semesters.length, semesters.length - 1)]
                 mappings.push({
                     pathwayCourse: courseName,
                     availableCourse,
                     isRequired: false,
                     isRecommended: true,
-                    semester: 'Year 1, Spring'
+                    semester: semester
                 })
+                semesterCounter++
             })
         })
 
-        // Process pathway steps courses
+        // Process pathway steps courses with their specific timelines
         selectedPathway.pathwaySteps.forEach(step => {
             step.courses.forEach(courseName => {
                 // Avoid duplicates
@@ -119,35 +125,55 @@ export default function PathwayCloner({ userId, onPathwayCloned }: PathwayCloner
     }
 
     const findMatchingCourse = (courseName: string): AssistCourse | null => {
-        // Try to match by course code and title
-        const normalizedName = courseName.toLowerCase()
+        // Extract course code and title from the pathway course name
+        // Format: "MATH 150 (Calculus I)" or "CS 101 (Programming Fundamentals)"
+        const match = courseName.match(/^([A-Z]+)\s+(\d+[A-Z]?)\s*\(([^)]+)\)/)
+        if (!match) return null
 
-        // First try exact matches
-        let match = state.courses.find(course =>
-            course.courseCode.toLowerCase() === normalizedName.split(' ')[0] ||
-            course.courseTitle.toLowerCase().includes(normalizedName) ||
-            normalizedName.includes(course.courseCode.toLowerCase())
+        const [, department, courseNumber, title] = match
+        const searchCode = `${department} ${courseNumber}`.toLowerCase()
+        const searchTitle = title.toLowerCase()
+
+        // First try exact course code match
+        let foundCourse = state.courses.find(course =>
+            course.courseCode.toLowerCase() === searchCode
         )
 
-        // If no exact match, try partial matches
-        if (!match) {
-            const courseCode = normalizedName.split(' ')[0]
-            match = state.courses.find(course =>
-                course.courseCode.toLowerCase().startsWith(courseCode) ||
-                course.courseTitle.toLowerCase().includes(courseCode)
-            )
+        // If no exact match, try by department and similar course number
+        if (!foundCourse) {
+            foundCourse = state.courses.find(course => {
+                const courseCode = course.courseCode.toLowerCase()
+                const courseTitle = course.courseTitle.toLowerCase()
+
+                // Match by department and similar course number
+                const courseDept = courseCode.split(' ')[0]
+                const courseNum = courseCode.split(' ')[1]
+
+                return courseDept === department.toLowerCase() &&
+                    courseNum &&
+                    courseNum.startsWith(courseNumber.charAt(0)) &&
+                    (courseTitle.includes(searchTitle) || searchTitle.includes(courseTitle))
+            })
+        }
+
+        // If still no match, try by title similarity
+        if (!foundCourse) {
+            foundCourse = state.courses.find(course => {
+                const courseTitle = course.courseTitle.toLowerCase()
+                return courseTitle.includes(searchTitle) || searchTitle.includes(courseTitle)
+            })
         }
 
         // If we found a match, validate prerequisites
-        if (match && state.studentProfile) {
-            const validation = validatePrerequisites(match, state.studentProfile)
+        if (foundCourse && state.studentProfile) {
+            const validation = validatePrerequisites(foundCourse, state.studentProfile)
             if (!validation.isValid) {
                 // Return null if prerequisites are not met
                 return null
             }
         }
 
-        return match || null
+        return foundCourse || null
     }
 
     const handlePathwaySelect = (pathwayId: string) => {
@@ -178,13 +204,13 @@ export default function PathwayCloner({ userId, onPathwayCloned }: PathwayCloner
         setLoading(true)
         try {
             const coursesToAdd = courseMappings
-                .filter(mapping => mapping.availableCourse && mapping.isRequired)
+                .filter(mapping => mapping.availableCourse && (mapping.isRequired || mapping.isRecommended))
                 .map(mapping => mapping.availableCourse!)
 
             // Create semester mappings
             const semesterMappings: Record<string, string> = {}
             courseMappings.forEach((mapping, index) => {
-                if (mapping.availableCourse && mapping.isRequired) {
+                if (mapping.availableCourse && (mapping.isRequired || mapping.isRecommended)) {
                     semesterMappings[mapping.availableCourse.id.toString()] = mapping.semester
                 }
             })

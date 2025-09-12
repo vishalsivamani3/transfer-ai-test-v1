@@ -583,6 +583,19 @@ function transferDataReducer(state: TransferDataState, action: TransferDataActio
             // Add courses to selected courses
             const updatedSelectedCourses = [...state.selectedCourses, ...action.payload.courses]
 
+            // Helper function to map semester timeline to semester name
+            const mapTimelineToSemester = (timeline: string): string => {
+                const timelineLower = timeline.toLowerCase()
+                if (timelineLower.includes('year 1') && timelineLower.includes('fall')) return 'Year 1, Fall'
+                if (timelineLower.includes('year 1') && timelineLower.includes('spring')) return 'Year 1, Spring'
+                if (timelineLower.includes('year 2') && timelineLower.includes('fall')) return 'Year 2, Fall'
+                if (timelineLower.includes('year 2') && timelineLower.includes('spring')) return 'Year 2, Spring'
+                if (timelineLower.includes('year 3') && timelineLower.includes('fall')) return 'Year 3, Fall'
+                if (timelineLower.includes('year 3') && timelineLower.includes('spring')) return 'Year 3, Spring'
+                // Default to first semester if no match
+                return 'Year 1, Fall'
+            }
+
             // Distribute courses across semesters based on mappings
             const updatedSemestersForCloning = state.activeSemesterPlan.semesters.map(semester => {
                 const coursesForThisSemester = action.payload.courses.filter(course => {
@@ -592,8 +605,8 @@ function transferDataReducer(state: TransferDataState, action: TransferDataActio
                     if (!courseMapping) return false
 
                     const [_, semesterTimeline] = courseMapping
-                    return semester.name.includes(semesterTimeline.split(',')[0]) ||
-                        semester.name.includes(semesterTimeline.split(',')[1]?.trim())
+                    const targetSemester = mapTimelineToSemester(semesterTimeline)
+                    return semester.name === targetSemester
                 })
 
                 const newPlannedCourses = coursesForThisSemester.map(course => ({
