@@ -163,13 +163,8 @@ interface TransferDataState {
         collegeType: string
         targetMajor: string
         targetUniversity: string
-        // New filters
+        // Available filters with data
         transferability: string // 'all', 'transferable', 'non-transferable'
-        timeSlot: string // 'all', 'morning', 'afternoon', 'evening', 'online'
-        instructor: string // instructor name filter
-        minRating: string // minimum professor rating
-        maxDifficulty: string // maximum professor difficulty
-        availableSeats: string // 'all', 'available', 'waitlist-only'
     }
 
     // Loading states
@@ -237,13 +232,8 @@ const initialState: TransferDataState = {
         collegeType: 'any',
         targetMajor: '',
         targetUniversity: '',
-        // New filters
-        transferability: 'all',
-        timeSlot: 'all',
-        instructor: '',
-        minRating: 'any',
-        maxDifficulty: 'any',
-        availableSeats: 'all'
+        // Available filters with data
+        transferability: 'all'
     },
     loading: {
         courses: false,

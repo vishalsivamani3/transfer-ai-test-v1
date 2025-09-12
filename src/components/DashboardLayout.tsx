@@ -11,6 +11,7 @@ import {
     Target,
     TrendingUp,
     FileText,
+    DollarSign,
     Settings,
     LogOut,
     ChevronLeft,
@@ -37,6 +38,7 @@ const sidebarItems = [
     { id: 'applications', label: 'Applications', icon: Target, description: 'Track transfer applications' },
     { id: 'pathways', label: 'Pathways', icon: TrendingUp, description: 'Transfer pathways' },
     { id: 'gpa-calculator', label: 'GPA Calculator', icon: FileText, description: 'Calculate your transfer GPA' },
+    { id: 'financial-calculator', label: 'Financial Calculator', icon: DollarSign, description: 'Calculate costs and financial aid' },
 ]
 
 export default function DashboardLayout({

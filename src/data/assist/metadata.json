@@ -1,24 +1,24 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-09-07T19:17:26.921602",
+  "lastUpdated": "2025-09-11T23:58:42.088301",
   "dataSource": "Assist California College Database",
   "statistics": {
-    "colleges": 19,
-    "courses": 909,
-    "transferAgreements": 2877,
-    "geRequirements": 1584,
-    "majorRequirements": 951
+    "colleges": 4,
+    "courses": 4,
+    "transferAgreements": 2,
+    "geRequirements": 1,
+    "majorRequirements": 1
   },
   "collegeTypes": {
-    "UC": 9,
-    "CSU": 5,
-    "CCC": 5,
+    "UC": 2,
+    "CSU": 1,
+    "CCC": 1,
     "AICCU": 0
   },
   "transferTypes": {
-    "UC_TRANSFERABLE": 852,
-    "CSU_TRANSFERABLE": 983,
-    "IGETC_APPROVED": 1042,
+    "UC_TRANSFERABLE": 2,
+    "CSU_TRANSFERABLE": 0,
+    "IGETC_APPROVED": 0,
     "CSU_GE_BREADTH": 0,
     "CAL_GETC": 0
   }

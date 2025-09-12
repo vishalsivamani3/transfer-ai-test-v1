@@ -55,6 +55,9 @@ import IntegratedProfileManagement from '@/components/IntegratedProfileManagemen
 import TransferPathwayBrowser from '@/components/TransferPathwayBrowser'
 import TransferApplicationTracker from '@/components/TransferApplicationTracker'
 import GPACalculator from '@/components/GPACalculator'
+import FinancialCostCalculator from '@/components/FinancialCostCalculator'
+import BudgetingTableau from '@/components/BudgetingTableau'
+import CourseAffordabilityInsights from '@/components/CourseAffordabilityInsights'
 import {
     colleges as assistColleges,
     transferAgreements as assistTransferAgreements,
@@ -817,6 +820,10 @@ function DashboardView({ user, dashboardData, onLogout, refreshDashboard, setCur
             {activeTab === 'gpa-calculator' && (
                 <GPACalculatorTab />
             )}
+
+            {activeTab === 'financial-calculator' && (
+                <FinancialCalculatorTab />
+            )}
         </DashboardLayout>
     )
 }
@@ -935,6 +942,16 @@ function GPACalculatorTab() {
     return (
         <div className="space-y-6">
             <GPACalculator />
+        </div>
+    )
+}
+
+function FinancialCalculatorTab() {
+    return (
+        <div className="space-y-6">
+            <FinancialCostCalculator />
+            <BudgetingTableau />
+            <CourseAffordabilityInsights />
         </div>
     )
 }

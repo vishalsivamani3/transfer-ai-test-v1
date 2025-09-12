@@ -11,12 +11,12 @@ import geRequirementsData from './ge-requirements.json';
 import majorRequirementsData from './major-requirements.json';
 import metadataData from './metadata.json';
 
-export const colleges: College[] = collegesData as unknown as College[];
-export const courses: Course[] = coursesData as unknown as Course[];
-export const transferAgreements: TransferAgreement[] = transferAgreementsData as unknown as TransferAgreement[];
-export const geRequirements: GeneralEducationRequirement[] = geRequirementsData as unknown as GeneralEducationRequirement[];
-export const majorRequirements: MajorRequirement[] = majorRequirementsData as unknown as MajorRequirement[];
-export const metadata: DataMetadata = metadataData as unknown as DataMetadata;
+export const colleges: College[] = collegesData;
+export const courses: Course[] = coursesData;
+export const transferAgreements: TransferAgreement[] = transferAgreementsData;
+export const geRequirements: GeneralEducationRequirement[] = geRequirementsData;
+export const majorRequirements: MajorRequirement[] = majorRequirementsData;
+export const metadata: DataMetadata = metadataData;
 
 // Utility functions
 export const getCollegeById = (id: number): College | undefined => {
@@ -66,7 +66,7 @@ export const getMajorRequirementsByMajor = (majorName: string): MajorRequirement
 // Search functions
 export const searchColleges = (query: string): College[] => {
   const lowerQuery = query.toLowerCase();
-  return colleges.filter(college =>
+  return colleges.filter(college => 
     college.name.toLowerCase().includes(lowerQuery) ||
     college.code.toLowerCase().includes(lowerQuery) ||
     (college.city && college.city.toLowerCase().includes(lowerQuery))

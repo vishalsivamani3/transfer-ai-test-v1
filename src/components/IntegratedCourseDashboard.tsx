@@ -50,7 +50,7 @@ interface IntegratedCourseDashboardProps {
 export default function IntegratedCourseDashboard({ studentInstitution, userId }: IntegratedCourseDashboardProps) {
     const { state, actions } = useTransferData()
     const [searchQuery, setSearchQuery] = useState('')
-    const [sortBy, setSortBy] = useState<'courseCode' | 'courseTitle' | 'department' | 'units' | 'professorRating' | 'professorDifficulty' | 'availableSeats' | 'transferability'>('courseCode')
+    const [sortBy, setSortBy] = useState<'courseCode' | 'courseTitle' | 'department' | 'units' | 'transferability'>('courseCode')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
     const [activeTab, setActiveTab] = useState('browse')
 
@@ -119,61 +119,8 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
             })
         }
 
-        if (state.filters.timeSlot && state.filters.timeSlot !== 'all') {
-            courses = courses.filter(course => {
-                if (!course.classTimes || course.classTimes.length === 0) return false
-
-                return course.classTimes.some(timeSlot => {
-                    const startHour = parseInt(timeSlot.startTime.split(':')[0])
-                    switch (state.filters.timeSlot) {
-                        case 'morning':
-                            return startHour >= 6 && startHour < 12
-                        case 'afternoon':
-                            return startHour >= 12 && startHour < 17
-                        case 'evening':
-                            return startHour >= 17 && startHour < 22
-                        case 'online':
-                            return timeSlot.type.toLowerCase().includes('online') || timeSlot.type.toLowerCase().includes('virtual')
-                        default:
-                            return true
-                    }
-                })
-            })
-        }
-
-        if (state.filters.instructor) {
-            courses = courses.filter(course =>
-                course.professorName?.toLowerCase().includes(state.filters.instructor.toLowerCase())
-            )
-        }
-
-        if (state.filters.minRating && state.filters.minRating !== 'any') {
-            const minRating = parseFloat(state.filters.minRating)
-            courses = courses.filter(course =>
-                course.professorRating && course.professorRating >= minRating
-            )
-        }
-
-        if (state.filters.maxDifficulty && state.filters.maxDifficulty !== 'any') {
-            const maxDifficulty = parseFloat(state.filters.maxDifficulty)
-            courses = courses.filter(course =>
-                course.professorDifficulty && course.professorDifficulty <= maxDifficulty
-            )
-        }
-
-        if (state.filters.availableSeats && state.filters.availableSeats !== 'all') {
-            courses = courses.filter(course => {
-                if (!course.capacity || !course.enrolled) return false
-                const availableSeats = course.capacity - course.enrolled
-
-                if (state.filters.availableSeats === 'available') {
-                    return availableSeats > 0
-                } else if (state.filters.availableSeats === 'waitlist-only') {
-                    return availableSeats <= 0 && course.waitlistCount !== undefined
-                }
-                return true
-            })
-        }
+        // Note: Removed empty filter categories (timeSlot, instructor, minRating, maxDifficulty, availableSeats)
+        // as they have no data to filter on
 
         // Sort courses
         courses.sort((a, b) => {
@@ -314,9 +261,7 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                                         <SelectItem value="courseTitle">Course Title</SelectItem>
                                         <SelectItem value="department">Department</SelectItem>
                                         <SelectItem value="units">Units</SelectItem>
-                                        <SelectItem value="professorRating">Professor Rating</SelectItem>
-                                        <SelectItem value="professorDifficulty">Professor Difficulty</SelectItem>
-                                        <SelectItem value="availableSeats">Available Seats</SelectItem>
+                                        {/* Removed empty sort options: professorRating, professorDifficulty, availableSeats */}
                                         <SelectItem value="transferability">Transferability</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -337,7 +282,7 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                     </div>
 
                     {/* Advanced Filters */}
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <Label htmlFor="transferability">Transferability</Label>
                             <Select value={state.filters.transferability} onValueChange={(value) => handleFilterChange('transferability', value)}>
@@ -352,67 +297,7 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                             </Select>
                         </div>
 
-                        <div>
-                            <Label htmlFor="time-slot">Time Slot</Label>
-                            <Select value={state.filters.timeSlot} onValueChange={(value) => handleFilterChange('timeSlot', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Any time" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Any time</SelectItem>
-                                    <SelectItem value="morning">Morning (6AM-12PM)</SelectItem>
-                                    <SelectItem value="afternoon">Afternoon (12PM-5PM)</SelectItem>
-                                    <SelectItem value="evening">Evening (5PM-10PM)</SelectItem>
-                                    <SelectItem value="online">Online/Virtual</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="min-rating">Min Rating</Label>
-                            <Select value={state.filters.minRating} onValueChange={(value) => handleFilterChange('minRating', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Any rating" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="any">Any rating</SelectItem>
-                                    <SelectItem value="3.0">3.0+ stars</SelectItem>
-                                    <SelectItem value="3.5">3.5+ stars</SelectItem>
-                                    <SelectItem value="4.0">4.0+ stars</SelectItem>
-                                    <SelectItem value="4.5">4.5+ stars</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="max-difficulty">Max Difficulty</Label>
-                            <Select value={state.filters.maxDifficulty} onValueChange={(value) => handleFilterChange('maxDifficulty', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Any difficulty" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="any">Any difficulty</SelectItem>
-                                    <SelectItem value="2.0">Very Easy (≤2.0)</SelectItem>
-                                    <SelectItem value="2.5">Easy (≤2.5)</SelectItem>
-                                    <SelectItem value="3.0">Moderate (≤3.0)</SelectItem>
-                                    <SelectItem value="3.5">Challenging (≤3.5)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="available-seats">Availability</Label>
-                            <Select value={state.filters.availableSeats} onValueChange={(value) => handleFilterChange('availableSeats', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="All courses" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All courses</SelectItem>
-                                    <SelectItem value="available">Available seats</SelectItem>
-                                    <SelectItem value="waitlist-only">Waitlist only</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* Removed empty filter categories: timeSlot, minRating, maxDifficulty, availableSeats */}
 
                         <div>
                             <Label htmlFor="transfer-type">Transfer Type</Label>
@@ -491,10 +376,7 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                                                 <TableHead>Department</TableHead>
                                                 <TableHead>College</TableHead>
                                                 <TableHead>Units</TableHead>
-                                                <TableHead>Professor</TableHead>
-                                                <TableHead>Rating</TableHead>
-                                                <TableHead>Schedule</TableHead>
-                                                <TableHead>Availability</TableHead>
+                                                {/* Removed empty columns: Professor, Rating, Schedule, Availability */}
                                                 <TableHead>Transfer Info</TableHead>
                                                 <TableHead>Action</TableHead>
                                             </TableRow>
@@ -525,73 +407,7 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>{course.units || 'N/A'}</TableCell>
-                                                        <TableCell>
-                                                            {course.professorName ? (
-                                                                <div className="text-sm">
-                                                                    <div className="font-medium truncate max-w-24" title={course.professorName}>
-                                                                        {course.professorName}
-                                                                    </div>
-                                                                    {course.professorTotalRatings && (
-                                                                        <div className="text-xs text-gray-500">
-                                                                            {course.professorTotalRatings} reviews
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-sm">TBA</span>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {course.professorRating ? (
-                                                                <div className="flex items-center gap-1">
-                                                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                                                    <span className="text-sm font-medium">{course.professorRating}</span>
-                                                                    {course.professorDifficulty && (
-                                                                        <div className="text-xs text-gray-500">
-                                                                            ({course.professorDifficulty}/5)
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-sm">N/A</span>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {course.classTimes && course.classTimes.length > 0 ? (
-                                                                <div className="text-xs space-y-1">
-                                                                    {course.classTimes.slice(0, 2).map((time, index) => (
-                                                                        <div key={index} className="flex items-center gap-1">
-                                                                            <Clock className="h-3 w-3" />
-                                                                            <span>{time.days} {time.startTime}-{time.endTime}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                    {course.classTimes.length > 2 && (
-                                                                        <div className="text-gray-500">+{course.classTimes.length - 2} more</div>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-sm">TBA</span>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {course.capacity && course.enrolled !== undefined ? (
-                                                                <div className="text-sm">
-                                                                    <div className={`font-medium ${availableSeats > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                                        {availableSeats > 0 ? `${availableSeats} available` : 'Full'}
-                                                                    </div>
-                                                                    <div className="text-xs text-gray-500">
-                                                                        {course.enrolled}/{course.capacity}
-                                                                    </div>
-                                                                    {course.waitlistCount && course.waitlistCount > 0 && (
-                                                                        <div className="text-xs text-orange-600">
-                                                                            {course.waitlistCount} on waitlist
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-sm">N/A</span>
-                                                            )}
-                                                        </TableCell>
+                                                        {/* Removed empty table cells: Professor, Rating, Schedule, Availability */}
                                                         <TableCell>
                                                             <div className="flex flex-wrap gap-1">
                                                                 {isTransferable ? (
