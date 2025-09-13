@@ -101,6 +101,28 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
             )
         }
 
+        // College filter
+        if (state.filters.college && state.filters.college !== 'any') {
+            courses = courses.filter(course => {
+                if (!course.college) return false
+
+                const collegeName = course.college.name
+                const filterValue = state.filters.college
+
+                // Handle system-wide filters
+                if (filterValue === 'UC') {
+                    return collegeName.includes('University of California')
+                } else if (filterValue === 'CSU') {
+                    return collegeName.includes('California State University') || collegeName.includes('San Diego State University') || collegeName.includes('San Francisco State University')
+                } else if (filterValue === 'CCC') {
+                    return collegeName.includes('College') && !collegeName.includes('University')
+                }
+
+                // Handle specific college filters
+                return collegeName === filterValue
+            })
+        }
+
         if (state.filters.transferType && state.filters.transferType !== 'any') {
             courses = courses.filter(course =>
                 course.transferAgreements.some(agreement => agreement.transferType === state.filters.transferType)
@@ -240,13 +262,37 @@ export default function IntegratedCourseDashboard({ studentInstitution, userId }
                         </div>
 
                         <div>
-                            <Label htmlFor="instructor">Instructor</Label>
-                            <Input
-                                id="instructor"
-                                placeholder="e.g., Dr. Smith"
-                                value={state.filters.instructor}
-                                onChange={(e) => handleFilterChange('instructor', e.target.value)}
-                            />
+                            <Label htmlFor="college">College</Label>
+                            <Select value={state.filters.college || 'any'} onValueChange={(value) => handleFilterChange('college', value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select college" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="any">All Colleges</SelectItem>
+                                    <SelectItem value="UC">UC System</SelectItem>
+                                    <SelectItem value="CSU">CSU System</SelectItem>
+                                    <SelectItem value="CCC">Community Colleges</SelectItem>
+                                    <SelectItem value="University of California, Berkeley">UC Berkeley</SelectItem>
+                                    <SelectItem value="University of California, Los Angeles">UCLA</SelectItem>
+                                    <SelectItem value="University of California, San Diego">UC San Diego</SelectItem>
+                                    <SelectItem value="University of California, Davis">UC Davis</SelectItem>
+                                    <SelectItem value="University of California, Irvine">UC Irvine</SelectItem>
+                                    <SelectItem value="University of California, Santa Barbara">UC Santa Barbara</SelectItem>
+                                    <SelectItem value="University of California, Santa Cruz">UC Santa Cruz</SelectItem>
+                                    <SelectItem value="University of California, Riverside">UC Riverside</SelectItem>
+                                    <SelectItem value="University of California, Merced">UC Merced</SelectItem>
+                                    <SelectItem value="California State University, Long Beach">CSU Long Beach</SelectItem>
+                                    <SelectItem value="California State University, Fullerton">CSU Fullerton</SelectItem>
+                                    <SelectItem value="California State University, Northridge">CSU Northridge</SelectItem>
+                                    <SelectItem value="San Diego State University">San Diego State</SelectItem>
+                                    <SelectItem value="San Francisco State University">San Francisco State</SelectItem>
+                                    <SelectItem value="Santa Monica College">Santa Monica College</SelectItem>
+                                    <SelectItem value="Pasadena City College">Pasadena City College</SelectItem>
+                                    <SelectItem value="Los Angeles City College">Los Angeles City College</SelectItem>
+                                    <SelectItem value="De Anza College">De Anza College</SelectItem>
+                                    <SelectItem value="Foothill College">Foothill College</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div>

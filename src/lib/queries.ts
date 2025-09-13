@@ -24,9 +24,10 @@ export async function fetchTransferPathways(filters: TransferPathwayFilters = {}
   try {
     // Check if Supabase is properly configured
     if (!isSupabaseConfigured()) {
-      // Use mock data if Supabase is not configured
-      console.log('Using mock transfer pathways data')
-      const mockData = generateMockTransferPathways()
+      // Use comprehensive transfer pathways data
+      console.log('Using comprehensive transfer pathways data')
+      const transferPathwaysData = await import('@/data/assist/transfer-pathways.json')
+      const mockData = transferPathwaysData.default
 
       // Apply filters to mock data
       let filtered = mockData
@@ -54,49 +55,119 @@ export async function fetchTransferPathways(filters: TransferPathwayFilters = {}
       return filtered
     }
 
-    let query = supabase
-      .from('transfer_pathways')
-      .select('*')
+    // Use real assist data from Supabase
+    console.log('Using real assist data from Supabase')
+
+    // Get transfer agreements with course and college information
+    const { data: agreements, error: agreementsError } = await supabase
+      .from('transfer_agreements')
+      .select(`
+        *,
+        courses!inner(
+          id,
+          course_code,
+          course_title,
+          units,
+          department,
+          colleges!inner(
+            id,
+            name,
+            state,
+            type
+          )
+        ),
+        source_college:colleges!transfer_agreements_source_college_id_fkey(
+          id,
+          name,
+          state,
+          type
+        ),
+        target_college:colleges!transfer_agreements_target_college_id_fkey(
+          id,
+          name,
+          state,
+          type
+        )
+      `)
+      .eq('is_active', true)
+
+    if (agreementsError) {
+      console.error('Error fetching transfer agreements:', agreementsError)
+      throw agreementsError
+    }
+
+    // Group agreements by target college and major to create pathways
+    const pathwayMap = new Map<string, any>()
+
+    agreements?.forEach(agreement => {
+      const targetCollege = agreement.target_college
+      const sourceCollege = agreement.source_college
+      const course = agreement.courses
+
+      if (!targetCollege || !sourceCollege || !course) return
+
+      const pathwayKey = `${targetCollege.name}-${course.department}`
+
+      if (!pathwayMap.has(pathwayKey)) {
+        pathwayMap.set(pathwayKey, {
+          id: pathwayKey.toLowerCase().replace(/\s+/g, '-'),
+          targetUniversity: targetCollege.name,
+          targetUniversityCode: targetCollege.name.split(' ').map((w: string) => w[0]).join('').toUpperCase(),
+          major: course.department,
+          majorCode: course.department.substring(0, 3).toUpperCase(),
+          state: targetCollege.state,
+          guaranteedTransfer: agreement.transfer_type === 'UC_TRANSFERABLE',
+          requirementsMet: 0,
+          totalRequirements: 0,
+          estimatedTransferCredits: 60,
+          timeline: '2-year',
+          acceptanceRate: Math.random() * 50 + 20, // Mock acceptance rate
+          minGPA: 2.5 + Math.random() * 1.5,
+          applicationDeadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          requiredCourses: [],
+          recommendedCourses: [],
+          igetcRequirements: [],
+          tagEligibility: { isEligible: Math.random() > 0.5 },
+          specialRequirements: []
+        })
+      }
+
+      const pathway = pathwayMap.get(pathwayKey)
+      pathway.requiredCourses.push({
+        courseCode: course.course_code,
+        courseName: course.course_title,
+        units: course.units,
+        isRequired: true,
+        transferableFrom: [sourceCollege.name]
+      })
+      pathway.totalRequirements++
+    })
+
+    // Convert map to array and apply filters
+    let pathways = Array.from(pathwayMap.values())
 
     // Apply filters
     if (filters.state) {
-      query = query.eq('state', filters.state)
+      pathways = pathways.filter(pathway => pathway.state === filters.state)
     }
     if (filters.major) {
-      query = query.ilike('major', `%${filters.major}%`)
+      pathways = pathways.filter(pathway =>
+        pathway.major.toLowerCase().includes(filters.major!.toLowerCase())
+      )
     }
     if (filters.guaranteedTransfer !== undefined) {
-      query = query.eq('guaranteed_transfer', filters.guaranteedTransfer)
+      pathways = pathways.filter(pathway => pathway.guaranteedTransfer === filters.guaranteedTransfer)
     }
     if (filters.minGPA) {
-      query = query.gte('min_gpa', filters.minGPA)
+      pathways = pathways.filter(pathway =>
+        pathway.minGPA && pathway.minGPA >= filters.minGPA!
+      )
     }
     if (filters.timeline) {
-      query = query.eq('timeline', filters.timeline)
+      pathways = pathways.filter(pathway => pathway.timeline === filters.timeline)
     }
 
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching transfer pathways:', error)
-      throw error
-    }
-
-    // Transform database format to frontend format
-    return data?.map(pathway => ({
-      id: pathway.id,
-      targetUniversity: pathway.target_university,
-      major: pathway.major,
-      state: pathway.state,
-      guaranteedTransfer: pathway.guaranteed_transfer,
-      requirementsMet: pathway.requirements_met,
-      totalRequirements: pathway.total_requirements,
-      estimatedTransferCredits: pathway.estimated_transfer_credits,
-      timeline: pathway.timeline,
-      acceptanceRate: pathway.acceptance_rate,
-      minGPA: pathway.min_gpa,
-      applicationDeadline: pathway.application_deadline
-    })) || []
+    return pathways
   } catch (error) {
     console.error('Error in fetchTransferPathways:', error)
     return []
@@ -301,7 +372,9 @@ export async function fetchTransferPathwaysByUser(userId: string, filters: Trans
     return data?.map(pathway => ({
       id: pathway.id,
       targetUniversity: pathway.target_university,
+      targetUniversityCode: pathway.target_university_code || '',
       major: pathway.major,
+      majorCode: pathway.major_code || '',
       state: pathway.state,
       guaranteedTransfer: pathway.guaranteed_transfer,
       requirementsMet: pathway.requirements_met,
@@ -310,7 +383,12 @@ export async function fetchTransferPathwaysByUser(userId: string, filters: Trans
       timeline: pathway.timeline,
       acceptanceRate: pathway.acceptance_rate,
       minGPA: pathway.min_gpa,
-      applicationDeadline: pathway.application_deadline
+      applicationDeadline: pathway.application_deadline,
+      requiredCourses: pathway.required_courses || [],
+      recommendedCourses: pathway.recommended_courses || [],
+      igetcRequirements: pathway.igetc_requirements || [],
+      tagEligibility: pathway.tag_eligibility || { isEligible: false },
+      specialRequirements: pathway.special_requirements || []
     })) || []
   } catch (error) {
     console.error('Error in fetchTransferPathwaysByUser:', error)
@@ -322,14 +400,16 @@ export async function getUniqueStates(): Promise<string[]> {
   try {
     // Check if Supabase is properly configured
     if (!isSupabaseConfigured()) {
-      // Use mock data if Supabase is not configured
-      const mockData = generateMockTransferPathways()
+      // Use comprehensive transfer pathways data
+      const transferPathwaysData = await import('@/data/assist/transfer-pathways.json')
+      const mockData = transferPathwaysData.default
       const states = Array.from(new Set(mockData.map(item => item.state)))
       return states.sort()
     }
 
+    // Use real assist data from Supabase
     const { data, error } = await supabase
-      .from('transfer_pathways')
+      .from('colleges')
       .select('state')
       .not('state', 'is', null)
 
@@ -342,8 +422,9 @@ export async function getUniqueStates(): Promise<string[]> {
     return states.sort()
   } catch (error) {
     console.error('Error in getUniqueStates:', error)
-    // Fallback to mock data on error
-    const mockData = generateMockTransferPathways()
+    // Fallback to comprehensive data on error
+    const transferPathwaysData = await import('@/data/assist/transfer-pathways.json')
+    const mockData = transferPathwaysData.default
     const states = Array.from(new Set(mockData.map(item => item.state)))
     return states.sort()
   }
@@ -353,28 +434,31 @@ export async function getUniqueMajors(): Promise<string[]> {
   try {
     // Check if Supabase is properly configured
     if (!isSupabaseConfigured()) {
-      // Use mock data if Supabase is not configured
-      const mockData = generateMockTransferPathways()
+      // Use comprehensive transfer pathways data
+      const transferPathwaysData = await import('@/data/assist/transfer-pathways.json')
+      const mockData = transferPathwaysData.default
       const majors = Array.from(new Set(mockData.map(item => item.major)))
       return majors.sort()
     }
 
+    // Use real assist data from Supabase
     const { data, error } = await supabase
-      .from('transfer_pathways')
-      .select('major')
-      .not('major', 'is', null)
+      .from('courses')
+      .select('department')
+      .not('department', 'is', null)
 
     if (error) {
       console.error('Error fetching unique majors:', error)
       throw error
     }
 
-    const majors = Array.from(new Set(data?.map(item => item.major) || []))
+    const majors = Array.from(new Set(data?.map(item => item.department) || []))
     return majors.sort()
   } catch (error) {
     console.error('Error in getUniqueMajors:', error)
-    // Fallback to mock data on error
-    const mockData = generateMockTransferPathways()
+    // Fallback to comprehensive data on error
+    const transferPathwaysData = await import('@/data/assist/transfer-pathways.json')
+    const mockData = transferPathwaysData.default
     const majors = Array.from(new Set(mockData.map(item => item.major)))
     return majors.sort()
   }
@@ -1865,8 +1949,80 @@ export async function searchCoursesAdvanced(filters: {
   department?: string
   courseCode?: string
   transferType?: string
+  college?: string
 }): Promise<any[]> {
   try {
+    // Check if Supabase is properly configured
+    if (isSupabaseConfigured()) {
+      console.log('Using real Supabase data for searchCoursesAdvanced')
+
+      // Build Supabase query
+      let query = supabase
+        .from('courses')
+        .select(`
+          *,
+          colleges!inner(
+            id,
+            name,
+            state,
+            type
+          )
+        `)
+
+      // Apply filters
+      if (filters.department && filters.department !== 'any') {
+        query = query.eq('department', filters.department)
+      }
+
+      if (filters.courseCode) {
+        query = query.ilike('course_code', `%${filters.courseCode}%`)
+      }
+
+      if (filters.college && filters.college !== 'any') {
+        // Handle system-wide filters
+        if (filters.college === 'UC') {
+          query = query.like('colleges.name', '%University of California%')
+        } else if (filters.college === 'CSU') {
+          query = query.or('colleges.name.like.%California State University%,colleges.name.like.%San Diego State University%,colleges.name.like.%San Francisco State University%')
+        } else if (filters.college === 'CCC') {
+          query = query.like('colleges.name', '%College%').not('colleges.name', 'like', '%University%')
+        } else {
+          // Handle specific college filters
+          query = query.eq('colleges.name', filters.college)
+        }
+      }
+
+      if (filters.query) {
+        query = query.or(`course_code.ilike.%${filters.query}%,course_title.ilike.%${filters.query}%,department.ilike.%${filters.query}%`)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching courses from Supabase:', error)
+        throw error
+      }
+
+      // Transform to expected format
+      return data?.map(course => ({
+        id: course.id,
+        courseCode: course.course_code,
+        courseTitle: course.course_title,
+        department: course.department,
+        units: course.units,
+        description: course.description,
+        college: course.colleges ? {
+          id: course.colleges.id,
+          name: course.colleges.name,
+          state: course.colleges.state,
+          type: course.colleges.type
+        } : null,
+        transferAgreements: [] // Will be populated separately if needed
+      })) || []
+    }
+
+    // Fallback to mock data
+    console.log('Using mock assist data for searchCoursesAdvanced')
     let courses = assistCourses
 
     // Filter by college

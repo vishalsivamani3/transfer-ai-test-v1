@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Search, Filter, MapPin, GraduationCap, Clock, Star, Calendar } from 'lucide-react'
+import { Search, Filter, MapPin, GraduationCap, Clock, Star, Calendar, Plus, CheckCircle, XCircle, BookOpen, Target, Users, Award } from 'lucide-react'
 import { TransferPathwayFilters } from '@/lib/queries'
-import { TransferPathway } from '@/types'
+import { TransferPathway, RequiredCourse, RecommendedCourse, IGETCRequirement, TAGEligibility } from '@/types'
 import { fetchTransferPathways, getUniqueStates, getUniqueMajors } from '@/lib/queries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
 
 interface TransferPathwaysTableProps {
   userId?: string
@@ -21,12 +25,14 @@ interface TransferPathwaysTableProps {
 export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferPathwaysTableProps) {
   const [pathways, setPathways] = useState<TransferPathway[]>([])
   const [filteredPathways, setFilteredPathways] = useState<TransferPathway[]>([])
+  const [selectedPathways, setSelectedPathways] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState<TransferPathwayFilters>(initialFilters)
   const [states, setStates] = useState<string[]>([])
   const [majors, setMajors] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedPathwayDetails, setSelectedPathwayDetails] = useState<TransferPathway | null>(null)
 
   // Load data on component mount
   useEffect(() => {
@@ -115,6 +121,45 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
   const clearFilters = () => {
     setFilters({})
     setSearchTerm('')
+  }
+
+  const handlePathwaySelect = (pathwayId: string) => {
+    const newSelected = new Set(selectedPathways)
+    if (newSelected.has(pathwayId)) {
+      newSelected.delete(pathwayId)
+    } else {
+      newSelected.add(pathwayId)
+    }
+    setSelectedPathways(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedPathways.size === filteredPathways.length) {
+      setSelectedPathways(new Set())
+    } else {
+      setSelectedPathways(new Set(filteredPathways.map(p => p.id)))
+    }
+  }
+
+  const handleViewDetails = (pathway: TransferPathway) => {
+    setSelectedPathwayDetails(pathway)
+  }
+
+  const handleAddToApplications = () => {
+    const selectedCount = selectedPathways.size
+    if (selectedCount === 0) {
+      toast.error('Please select at least one pathway to add to applications')
+      return
+    }
+
+    // Here you would typically save to user's applications
+    toast.success(`Added ${selectedCount} pathway${selectedCount > 1 ? 's' : ''} to your applications`)
+    setSelectedPathways(new Set())
+  }
+
+  const handleCloneToPlanner = (pathway: TransferPathway) => {
+    // Here you would typically clone the pathway to the semester planner
+    toast.success(`Cloned ${pathway.targetUniversity} ${pathway.major} pathway to your planner`)
   }
 
   const formatDate = (dateString?: string) => {
@@ -269,24 +314,43 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
         </CardContent>
       </Card>
 
-      {/* Results Summary */}
+      {/* Results Summary and Actions */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredPathways.length} of {pathways.length} pathways
-        </p>
-        {Object.keys(filters).length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Active filters:</span>
-            {filters.state && <Badge variant="secondary">{filters.state}</Badge>}
-            {filters.major && <Badge variant="secondary">{filters.major}</Badge>}
-            {filters.guaranteedTransfer !== undefined && (
-              <Badge variant="secondary">
-                {filters.guaranteedTransfer ? 'Guaranteed' : 'Standard'}
-              </Badge>
-            )}
-            {filters.timeline && <Badge variant="secondary">{filters.timeline}</Badge>}
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredPathways.length} of {pathways.length} pathways
+          </p>
+          {selectedPathways.size > 0 && (
+            <Badge variant="default" className="bg-blue-600">
+              {selectedPathways.size} selected
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedPathways.size > 0 && (
+            <Button
+              size="sm"
+              onClick={handleAddToApplications}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add to Applications
+            </Button>
+          )}
+          {Object.keys(filters).length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              {filters.state && <Badge variant="secondary">{filters.state}</Badge>}
+              {filters.major && <Badge variant="secondary">{filters.major}</Badge>}
+              {filters.guaranteedTransfer !== undefined && (
+                <Badge variant="secondary">
+                  {filters.guaranteedTransfer ? 'Guaranteed' : 'Standard'}
+                </Badge>
+              )}
+              {filters.timeline && <Badge variant="secondary">{filters.timeline}</Badge>}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -295,6 +359,12 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedPathways.size === filteredPathways.length && filteredPathways.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>University</TableHead>
                 <TableHead>Major</TableHead>
                 <TableHead>State</TableHead>
@@ -302,13 +372,13 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                 <TableHead>Progress</TableHead>
                 <TableHead>Credits</TableHead>
                 <TableHead>Timeline</TableHead>
-                <TableHead>Requirements</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPathways.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     <div className="text-muted-foreground">
                       {loading ? 'Loading...' : 'No transfer pathways found'}
                     </div>
@@ -316,7 +386,13 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                 </TableRow>
               ) : (
                 filteredPathways.map((pathway) => (
-                  <TableRow key={pathway.id}>
+                  <TableRow key={pathway.id} className={selectedPathways.has(pathway.id) ? 'bg-blue-50' : ''}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedPathways.has(pathway.id)}
+                        onCheckedChange={() => handlePathwaySelect(pathway.id)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">{pathway.targetUniversity}</div>
@@ -374,18 +450,23 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        {pathway.minGPA && (
-                          <div className="text-sm">
-                            Min GPA: {pathway.minGPA}
-                          </div>
-                        )}
-                        {pathway.applicationDeadline && (
-                          <div className="text-sm text-muted-foreground">
-                            <Calendar className="h-3 w-3 inline mr-1" />
-                            {formatDate(pathway.applicationDeadline)}
-                          </div>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewDetails(pathway)}
+                        >
+                          <BookOpen className="h-4 w-4 mr-1" />
+                          Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCloneToPlanner(pathway)}
+                        >
+                          <Target className="h-4 w-4 mr-1" />
+                          Clone
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -395,6 +476,229 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pathway Details Modal */}
+      {selectedPathwayDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold">
+                  {selectedPathwayDetails.targetUniversity} - {selectedPathwayDetails.major}
+                </h3>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedPathwayDetails(null)}
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="requirements">Requirements</TabsTrigger>
+                  <TabsTrigger value="igetc">IGETC</TabsTrigger>
+                  <TabsTrigger value="tag">TAG</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Basic Information</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">University:</span>
+                          <span className="font-medium">{selectedPathwayDetails.targetUniversity}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Major:</span>
+                          <span className="font-medium">{selectedPathwayDetails.major}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">State:</span>
+                          <span className="font-medium">{selectedPathwayDetails.state}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Transfer Type:</span>
+                          <Badge variant={selectedPathwayDetails.guaranteedTransfer ? "default" : "secondary"}>
+                            {selectedPathwayDetails.guaranteedTransfer ? "Guaranteed" : "Standard"}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Timeline:</span>
+                          <span className="font-medium">{selectedPathwayDetails.timeline}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Estimated Credits:</span>
+                          <span className="font-medium">{selectedPathwayDetails.estimatedTransferCredits}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Admissions Info</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {selectedPathwayDetails.acceptanceRate && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Acceptance Rate:</span>
+                            <span className="font-medium">{selectedPathwayDetails.acceptanceRate}%</span>
+                          </div>
+                        )}
+                        {selectedPathwayDetails.minGPA && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Min GPA:</span>
+                            <span className="font-medium">{selectedPathwayDetails.minGPA}</span>
+                          </div>
+                        )}
+                        {selectedPathwayDetails.applicationDeadline && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Application Deadline:</span>
+                            <span className="font-medium">{formatDate(selectedPathwayDetails.applicationDeadline)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Progress:</span>
+                          <span className="font-medium">
+                            {selectedPathwayDetails.requirementsMet}/{selectedPathwayDetails.totalRequirements}
+                          </span>
+                        </div>
+                        <Progress
+                          value={(selectedPathwayDetails.requirementsMet / selectedPathwayDetails.totalRequirements) * 100}
+                          className="h-2"
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="requirements" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Required Courses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {selectedPathwayDetails.requiredCourses.map((course, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="font-medium">{course.courseCode} - {course.courseName}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {course.units} units • Transferable from: {course.transferableFrom.join(', ')}
+                              </div>
+                            </div>
+                            <Badge variant="destructive">Required</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Recommended Courses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {selectedPathwayDetails.recommendedCourses.map((course, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="font-medium">{course.courseCode} - {course.courseName}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {course.units} units • Transferable from: {course.transferableFrom.join(', ')}
+                              </div>
+                            </div>
+                            <Badge variant="secondary">Recommended</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="igetc" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">IGETC Requirements</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {selectedPathwayDetails.igetcRequirements.map((req, index) => (
+                          <div key={index} className="p-3 border rounded-lg">
+                            <div className="font-medium">{req.area}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {req.units} units • Courses: {req.courses.join(', ')}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="tag" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">TAG Eligibility</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          {selectedPathwayDetails.tagEligibility.isEligible ? (
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-red-600" />
+                          )}
+                          <span className="font-medium">
+                            {selectedPathwayDetails.tagEligibility.isEligible ? 'TAG Eligible' : 'Not TAG Eligible'}
+                          </span>
+                        </div>
+
+                        {selectedPathwayDetails.tagEligibility.reason && (
+                          <p className="text-muted-foreground">{selectedPathwayDetails.tagEligibility.reason}</p>
+                        )}
+
+                        {selectedPathwayDetails.tagEligibility.requirements && (
+                          <div>
+                            <h4 className="font-medium mb-2">TAG Requirements:</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              {selectedPathwayDetails.tagEligibility.requirements.map((req, index) => (
+                                <li key={index} className="text-sm text-muted-foreground">{req}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedPathwayDetails(null)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleCloneToPlanner(selectedPathwayDetails)
+                    setSelectedPathwayDetails(null)
+                  }}
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  Clone to Planner
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

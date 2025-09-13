@@ -8,10 +8,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-    return supabaseUrl !== 'https://placeholder.supabase.co' &&
+    const isConfigured = supabaseUrl !== 'https://placeholder.supabase.co' &&
         supabaseAnonKey !== 'placeholder_key' &&
         supabaseUrl !== 'https://your-project-id.supabase.co' &&
         supabaseAnonKey !== 'your_supabase_anon_key_here'
+
+    console.log('Supabase configured:', isConfigured, 'URL:', supabaseUrl)
+    return isConfigured
 }
 
 // Database types

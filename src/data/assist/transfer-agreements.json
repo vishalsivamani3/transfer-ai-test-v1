@@ -2,8 +2,12 @@
   {
     "id": 1,
     "sourceCollegeId": 4,
+    "sourceCollegeName": "Santa Monica College",
     "targetCollegeId": 1,
+    "targetCollegeName": "UC Berkeley",
     "courseId": 4,
+    "courseCode": "MATH 1",
+    "courseName": "Calculus I",
     "transferType": "UC_TRANSFERABLE",
     "equivalentCourse": "MATH 1A",
     "unitsTransferred": 4.0,

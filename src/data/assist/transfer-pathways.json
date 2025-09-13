@@ -1,0 +1,756 @@
+[
+    {
+        "id": "uc-berkeley-cs",
+        "targetUniversity": "UC Berkeley",
+        "targetUniversityCode": "UCB",
+        "major": "Computer Science",
+        "majorCode": "CS",
+        "state": "California",
+        "guaranteedTransfer": false,
+        "requirementsMet": 8,
+        "totalRequirements": 12,
+        "estimatedTransferCredits": 60,
+        "timeline": "2-year",
+        "acceptanceRate": 17.5,
+        "minGPA": 3.7,
+        "applicationDeadline": "2024-11-30",
+        "requiredCourses": [
+            {
+                "courseCode": "MATH 1A",
+                "courseName": "Calculus I",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 1B",
+                "courseName": "Calculus II",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 53",
+                "courseName": "Multivariable Calculus",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 54",
+                "courseName": "Linear Algebra",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "CS 61A",
+                "courseName": "Structure and Interpretation of Computer Programs",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "CS 61B",
+                "courseName": "Data Structures",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            }
+        ],
+        "recommendedCourses": [
+            {
+                "courseCode": "CS 70",
+                "courseName": "Discrete Mathematics and Probability Theory",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "PHYS 7A",
+                "courseName": "Physics for Scientists and Engineers",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College"
+                ]
+            }
+        ],
+        "igetcRequirements": [
+            {
+                "area": "English Communication",
+                "courses": [
+                    "ENGL 1A",
+                    "ENGL 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Mathematical Concepts and Quantitative Reasoning",
+                "courses": [
+                    "MATH 1A",
+                    "MATH 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Arts and Humanities",
+                "courses": [
+                    "ART 1A",
+                    "MUS 1A",
+                    "PHIL 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Social and Behavioral Sciences",
+                "courses": [
+                    "PSYC 1A",
+                    "SOC 1A",
+                    "HIST 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Physical and Biological Sciences",
+                "courses": [
+                    "PHYS 7A",
+                    "CHEM 1A",
+                    "BIOL 1A"
+                ],
+                "units": 7
+            }
+        ],
+        "tagEligibility": {
+            "isEligible": false,
+            "reason": "Computer Science is not TAG eligible at UC Berkeley"
+        },
+        "specialRequirements": [
+            "Personal Insight Questions required",
+            "Portfolio submission recommended",
+            "Strong math and science background preferred"
+        ]
+    },
+    {
+        "id": "uc-berkeley-business",
+        "targetUniversity": "UC Berkeley",
+        "targetUniversityCode": "UCB",
+        "major": "Business Administration",
+        "majorCode": "BUS",
+        "state": "California",
+        "guaranteedTransfer": false,
+        "requirementsMet": 6,
+        "totalRequirements": 8,
+        "estimatedTransferCredits": 60,
+        "timeline": "2-year",
+        "acceptanceRate": 8.2,
+        "minGPA": 3.8,
+        "applicationDeadline": "2024-11-30",
+        "requiredCourses": [
+            {
+                "courseCode": "MATH 1A",
+                "courseName": "Calculus I",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 1B",
+                "courseName": "Calculus II",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "ECON 1A",
+                "courseName": "Principles of Microeconomics",
+                "units": 3,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "ECON 1B",
+                "courseName": "Principles of Macroeconomics",
+                "units": 3,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            }
+        ],
+        "recommendedCourses": [
+            {
+                "courseCode": "BUS 1A",
+                "courseName": "Introduction to Business",
+                "units": 3,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College"
+                ]
+            },
+            {
+                "courseCode": "STAT 1A",
+                "courseName": "Introduction to Statistics",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            }
+        ],
+        "igetcRequirements": [
+            {
+                "area": "English Communication",
+                "courses": [
+                    "ENGL 1A",
+                    "ENGL 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Mathematical Concepts and Quantitative Reasoning",
+                "courses": [
+                    "MATH 1A",
+                    "MATH 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Arts and Humanities",
+                "courses": [
+                    "ART 1A",
+                    "MUS 1A",
+                    "PHIL 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Social and Behavioral Sciences",
+                "courses": [
+                    "PSYC 1A",
+                    "SOC 1A",
+                    "HIST 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Physical and Biological Sciences",
+                "courses": [
+                    "PHYS 7A",
+                    "CHEM 1A",
+                    "BIOL 1A"
+                ],
+                "units": 7
+            }
+        ],
+        "tagEligibility": {
+            "isEligible": false,
+            "reason": "Business Administration is not TAG eligible at UC Berkeley"
+        },
+        "specialRequirements": [
+            "Personal Insight Questions required",
+            "Leadership experience preferred",
+            "Strong quantitative background required"
+        ]
+    },
+    {
+        "id": "uc-davis-cs",
+        "targetUniversity": "UC Davis",
+        "targetUniversityCode": "UCD",
+        "major": "Computer Science",
+        "majorCode": "CS",
+        "state": "California",
+        "guaranteedTransfer": true,
+        "requirementsMet": 10,
+        "totalRequirements": 12,
+        "estimatedTransferCredits": 60,
+        "timeline": "2-year",
+        "acceptanceRate": 45.2,
+        "minGPA": 3.2,
+        "applicationDeadline": "2024-11-30",
+        "requiredCourses": [
+            {
+                "courseCode": "MATH 1A",
+                "courseName": "Calculus I",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 1B",
+                "courseName": "Calculus II",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 53",
+                "courseName": "Multivariable Calculus",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "CS 61A",
+                "courseName": "Structure and Interpretation of Computer Programs",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "CS 61B",
+                "courseName": "Data Structures",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "CS 70",
+                "courseName": "Discrete Mathematics and Probability Theory",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            }
+        ],
+        "recommendedCourses": [
+            {
+                "courseCode": "PHYS 7A",
+                "courseName": "Physics for Scientists and Engineers",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College"
+                ]
+            },
+            {
+                "courseCode": "CS 61C",
+                "courseName": "Machine Structures",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            }
+        ],
+        "igetcRequirements": [
+            {
+                "area": "English Communication",
+                "courses": [
+                    "ENGL 1A",
+                    "ENGL 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Mathematical Concepts and Quantitative Reasoning",
+                "courses": [
+                    "MATH 1A",
+                    "MATH 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Arts and Humanities",
+                "courses": [
+                    "ART 1A",
+                    "MUS 1A",
+                    "PHIL 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Social and Behavioral Sciences",
+                "courses": [
+                    "PSYC 1A",
+                    "SOC 1A",
+                    "HIST 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Physical and Biological Sciences",
+                "courses": [
+                    "PHYS 7A",
+                    "CHEM 1A",
+                    "BIOL 1A"
+                ],
+                "units": 7
+            }
+        ],
+        "tagEligibility": {
+            "isEligible": true,
+            "requirements": [
+                "Complete 30 semester units of UC-transferable coursework",
+                "Complete 2 UC-transferable math courses",
+                "Complete 2 UC-transferable science courses",
+                "Maintain 3.2 GPA in UC-transferable courses"
+            ]
+        },
+        "specialRequirements": [
+            "TAG application due September 30",
+            "Personal Insight Questions required",
+            "Strong math and science background preferred"
+        ]
+    },
+    {
+        "id": "uc-irvine-cs",
+        "targetUniversity": "UC Irvine",
+        "targetUniversityCode": "UCI",
+        "major": "Computer Science",
+        "majorCode": "CS",
+        "state": "California",
+        "guaranteedTransfer": true,
+        "requirementsMet": 9,
+        "totalRequirements": 11,
+        "estimatedTransferCredits": 60,
+        "timeline": "2-year",
+        "acceptanceRate": 28.7,
+        "minGPA": 3.4,
+        "applicationDeadline": "2024-11-30",
+        "requiredCourses": [
+            {
+                "courseCode": "MATH 1A",
+                "courseName": "Calculus I",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 1B",
+                "courseName": "Calculus II",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 53",
+                "courseName": "Multivariable Calculus",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "CS 61A",
+                "courseName": "Structure and Interpretation of Computer Programs",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "CS 61B",
+                "courseName": "Data Structures",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "CS 70",
+                "courseName": "Discrete Mathematics and Probability Theory",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            }
+        ],
+        "recommendedCourses": [
+            {
+                "courseCode": "PHYS 7A",
+                "courseName": "Physics for Scientists and Engineers",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College"
+                ]
+            },
+            {
+                "courseCode": "CS 61C",
+                "courseName": "Machine Structures",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            }
+        ],
+        "igetcRequirements": [
+            {
+                "area": "English Communication",
+                "courses": [
+                    "ENGL 1A",
+                    "ENGL 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Mathematical Concepts and Quantitative Reasoning",
+                "courses": [
+                    "MATH 1A",
+                    "MATH 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Arts and Humanities",
+                "courses": [
+                    "ART 1A",
+                    "MUS 1A",
+                    "PHIL 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Social and Behavioral Sciences",
+                "courses": [
+                    "PSYC 1A",
+                    "SOC 1A",
+                    "HIST 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Physical and Biological Sciences",
+                "courses": [
+                    "PHYS 7A",
+                    "CHEM 1A",
+                    "BIOL 1A"
+                ],
+                "units": 7
+            }
+        ],
+        "tagEligibility": {
+            "isEligible": true,
+            "requirements": [
+                "Complete 30 semester units of UC-transferable coursework",
+                "Complete 2 UC-transferable math courses",
+                "Complete 2 UC-transferable science courses",
+                "Maintain 3.4 GPA in UC-transferable courses"
+            ]
+        },
+        "specialRequirements": [
+            "TAG application due September 30",
+            "Personal Insight Questions required",
+            "Strong math and science background preferred"
+        ]
+    },
+    {
+        "id": "uc-santa-barbara-cs",
+        "targetUniversity": "UC Santa Barbara",
+        "targetUniversityCode": "UCSB",
+        "major": "Computer Science",
+        "majorCode": "CS",
+        "state": "California",
+        "guaranteedTransfer": true,
+        "requirementsMet": 8,
+        "totalRequirements": 10,
+        "estimatedTransferCredits": 60,
+        "timeline": "2-year",
+        "acceptanceRate": 32.1,
+        "minGPA": 3.2,
+        "applicationDeadline": "2024-11-30",
+        "requiredCourses": [
+            {
+                "courseCode": "MATH 1A",
+                "courseName": "Calculus I",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 1B",
+                "courseName": "Calculus II",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "MATH 53",
+                "courseName": "Multivariable Calculus",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Pasadena City College"
+                ]
+            },
+            {
+                "courseCode": "CS 61A",
+                "courseName": "Structure and Interpretation of Computer Programs",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "CS 61B",
+                "courseName": "Data Structures",
+                "units": 4,
+                "isRequired": true,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            }
+        ],
+        "recommendedCourses": [
+            {
+                "courseCode": "CS 70",
+                "courseName": "Discrete Mathematics and Probability Theory",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College"
+                ]
+            },
+            {
+                "courseCode": "PHYS 7A",
+                "courseName": "Physics for Scientists and Engineers",
+                "units": 4,
+                "isRequired": false,
+                "transferableFrom": [
+                    "Santa Monica College",
+                    "Los Angeles Pierce College"
+                ]
+            }
+        ],
+        "igetcRequirements": [
+            {
+                "area": "English Communication",
+                "courses": [
+                    "ENGL 1A",
+                    "ENGL 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Mathematical Concepts and Quantitative Reasoning",
+                "courses": [
+                    "MATH 1A",
+                    "MATH 1B"
+                ],
+                "units": 6
+            },
+            {
+                "area": "Arts and Humanities",
+                "courses": [
+                    "ART 1A",
+                    "MUS 1A",
+                    "PHIL 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Social and Behavioral Sciences",
+                "courses": [
+                    "PSYC 1A",
+                    "SOC 1A",
+                    "HIST 1A"
+                ],
+                "units": 9
+            },
+            {
+                "area": "Physical and Biological Sciences",
+                "courses": [
+                    "PHYS 7A",
+                    "CHEM 1A",
+                    "BIOL 1A"
+                ],
+                "units": 7
+            }
+        ],
+        "tagEligibility": {
+            "isEligible": true,
+            "requirements": [
+                "Complete 30 semester units of UC-transferable coursework",
+                "Complete 2 UC-transferable math courses",
+                "Complete 2 UC-transferable science courses",
+                "Maintain 3.2 GPA in UC-transferable courses"
+            ]
+        },
+        "specialRequirements": [
+            "TAG application due September 30",
+            "Personal Insight Questions required",
+            "Strong math and science background preferred"
+        ]
+    }
+]

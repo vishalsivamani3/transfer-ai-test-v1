@@ -163,6 +163,7 @@ interface TransferDataState {
         collegeType: string
         targetMajor: string
         targetUniversity: string
+        college: string // 'any', 'UC', 'CSU', 'CCC', or specific college name
         // Available filters with data
         transferability: string // 'all', 'transferable', 'non-transferable'
     }
@@ -232,6 +233,7 @@ const initialState: TransferDataState = {
         collegeType: 'any',
         targetMajor: '',
         targetUniversity: '',
+        college: 'any',
         // Available filters with data
         transferability: 'all'
     },

@@ -46,7 +46,9 @@ export interface Course {
 export interface TransferPathway {
     id: string
     targetUniversity: string
+    targetUniversityCode: string
     major: string
+    majorCode: string
     state: string
     guaranteedTransfer: boolean
     requirementsMet: number
@@ -56,6 +58,39 @@ export interface TransferPathway {
     acceptanceRate?: number
     minGPA?: number
     applicationDeadline?: string
+    requiredCourses: RequiredCourse[]
+    recommendedCourses: RecommendedCourse[]
+    igetcRequirements: IGETCRequirement[]
+    tagEligibility: TAGEligibility
+    specialRequirements: string[]
+}
+
+export interface RequiredCourse {
+    courseCode: string
+    courseName: string
+    units: number
+    isRequired: boolean
+    transferableFrom: string[]
+}
+
+export interface RecommendedCourse {
+    courseCode: string
+    courseName: string
+    units: number
+    isRequired: boolean
+    transferableFrom: string[]
+}
+
+export interface IGETCRequirement {
+    area: string
+    courses: string[]
+    units: number
+}
+
+export interface TAGEligibility {
+    isEligible: boolean
+    requirements?: string[]
+    reason?: string
 }
 
 export interface CourseRecommendation {

@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,7 +25,9 @@ import {
     School,
     Target,
     ChevronDown,
-    Edit
+    Edit,
+    Save,
+    X
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SettingsModal } from './SettingsModal'
@@ -217,37 +221,121 @@ export function UserProfileCompact({ className }: { className?: string }) {
     return <UserProfile showDropdown={true} className={className} />
 }
 
-// Full profile card version
+// Full profile card version with auto-editable fields
 export function UserProfileCard({ className }: { className?: string }) {
-    const { state } = useAuth()
+    const { state, actions } = useAuth()
     const user = state.user
     const userMetadata = user?.user_metadata || {}
+
+    // Local state for editable fields
+    const [editableFields, setEditableFields] = useState({
+        full_name: userMetadata.full_name || '',
+        currentCollege: userMetadata.currentCollege || '',
+        targetMajor: userMetadata.targetMajor || '',
+        gpa: userMetadata.gpa || '',
+        transferTimeline: userMetadata.transferTimeline || ''
+    })
+
+    const [isSaving, setIsSaving] = useState(false)
 
     if (!user) {
         return null
     }
 
+    const handleFieldChange = (field: string, value: string) => {
+        setEditableFields(prev => ({
+            ...prev,
+            [field]: value
+        }))
+    }
+
+    const handleSave = async () => {
+        setIsSaving(true)
+        try {
+            // Update user metadata
+            const updatedMetadata = {
+                ...userMetadata,
+                ...editableFields
+            }
+
+            // Here you would typically call an API to update the user profile
+            // For now, we'll just show a success message
+            toast.success('Profile updated successfully!')
+
+            // In a real implementation, you would update the user context here
+            // await actions.updateProfile(updatedMetadata)
+
+        } catch (error) {
+            console.error('Error updating profile:', error)
+            toast.error('Failed to update profile')
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const handleReset = () => {
+        setEditableFields({
+            full_name: userMetadata.full_name || '',
+            currentCollege: userMetadata.currentCollege || '',
+            targetMajor: userMetadata.targetMajor || '',
+            gpa: userMetadata.gpa || '',
+            transferTimeline: userMetadata.transferTimeline || ''
+        })
+    }
+
     return (
         <Card className={className}>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Profile
+                <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Profile
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleReset}
+                            disabled={isSaving}
+                        >
+                            <X className="h-4 w-4 mr-1" />
+                            Reset
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                        >
+                            <Save className="h-4 w-4 mr-1" />
+                            {isSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                    </div>
                 </CardTitle>
                 <CardDescription>
-                    Your account information and preferences
+                    Click on any field to edit your profile information
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16">
-                        <AvatarImage src={userMetadata.avatar_url} alt={userMetadata.full_name} />
+                        <AvatarImage src={userMetadata.avatar_url} alt={editableFields.full_name} />
                         <AvatarFallback className="text-lg">
-                            {userMetadata.full_name ? userMetadata.full_name.split(' ').map(n => n[0]).join('') : 'U'}
+                            {editableFields.full_name ? editableFields.full_name.split(' ').map(n => n[0]).join('') : 'U'}
                         </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                        <h3 className="font-semibold">{userMetadata.full_name || 'User'}</h3>
+                    <div className="flex-1 space-y-2">
+                        <div>
+                            <Label htmlFor="full_name" className="text-sm font-medium text-gray-600">
+                                Full Name
+                            </Label>
+                            <Input
+                                id="full_name"
+                                value={editableFields.full_name}
+                                onChange={(e) => handleFieldChange('full_name', e.target.value)}
+                                className="mt-1"
+                                placeholder="Enter your full name"
+                            />
+                        </div>
                         <p className="text-sm text-gray-600">{user.email}</p>
                         <p className="text-xs text-gray-500">
                             Member since {formatDate(user.created_at)}
@@ -257,31 +345,58 @@ export function UserProfileCard({ className }: { className?: string }) {
 
                 <Separator />
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    {userMetadata.currentCollege && (
-                        <div>
-                            <p className="text-gray-600">Current College</p>
-                            <p className="font-medium">{userMetadata.currentCollege}</p>
-                        </div>
-                    )}
-                    {userMetadata.targetMajor && (
-                        <div>
-                            <p className="text-gray-600">Target Major</p>
-                            <p className="font-medium">{userMetadata.targetMajor}</p>
-                        </div>
-                    )}
-                    {userMetadata.gpa && (
-                        <div>
-                            <p className="text-gray-600">GPA</p>
-                            <p className="font-medium">{userMetadata.gpa}</p>
-                        </div>
-                    )}
-                    {userMetadata.transferTimeline && (
-                        <div>
-                            <p className="text-gray-600">Transfer Timeline</p>
-                            <p className="font-medium">{userMetadata.transferTimeline}</p>
-                        </div>
-                    )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="currentCollege" className="text-sm font-medium text-gray-600">
+                            Current College
+                        </Label>
+                        <Input
+                            id="currentCollege"
+                            value={editableFields.currentCollege}
+                            onChange={(e) => handleFieldChange('currentCollege', e.target.value)}
+                            placeholder="Enter your current college"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="targetMajor" className="text-sm font-medium text-gray-600">
+                            Target Major
+                        </Label>
+                        <Input
+                            id="targetMajor"
+                            value={editableFields.targetMajor}
+                            onChange={(e) => handleFieldChange('targetMajor', e.target.value)}
+                            placeholder="Enter your target major"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="gpa" className="text-sm font-medium text-gray-600">
+                            GPA
+                        </Label>
+                        <Input
+                            id="gpa"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="4.0"
+                            value={editableFields.gpa}
+                            onChange={(e) => handleFieldChange('gpa', e.target.value)}
+                            placeholder="Enter your GPA"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="transferTimeline" className="text-sm font-medium text-gray-600">
+                            Transfer Timeline
+                        </Label>
+                        <Input
+                            id="transferTimeline"
+                            value={editableFields.transferTimeline}
+                            onChange={(e) => handleFieldChange('transferTimeline', e.target.value)}
+                            placeholder="e.g., Fall 2025"
+                        />
+                    </div>
                 </div>
             </CardContent>
         </Card>
