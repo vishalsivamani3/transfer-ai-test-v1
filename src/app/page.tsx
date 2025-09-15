@@ -39,7 +39,6 @@ import {
     generateTransferPathways,
     generateCourseRecommendations
 } from '@/lib/utils'
-import { TransferPathwaysTable } from '@/components/TransferPathwaysTable'
 import CourseDashboard from '@/components/CourseDashboard'
 import StudentProfileForm from '@/components/StudentProfileForm'
 import SemesterPlanner from '@/components/SemesterPlanner'
@@ -1025,7 +1024,6 @@ function TransferPathwaysTab({ user }: { user: UserType }) {
                 </div>
             </div>
 
-            <TransferPathwaysTable userId={user.id} />
         </div>
     )
 }

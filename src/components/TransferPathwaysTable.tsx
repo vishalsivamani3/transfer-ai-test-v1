@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Search, Filter, MapPin, GraduationCap, Clock, Star, Calendar, Plus, CheckCircle, XCircle, BookOpen, Target, Users, Award } from 'lucide-react'
 import { TransferPathwayFilters } from '@/lib/queries'
 import { TransferPathway, RequiredCourse, RecommendedCourse, IGETCRequirement, TAGEligibility } from '@/types'
-import { fetchTransferPathways, getUniqueStates, getUniqueMajors } from '@/lib/queries'
+import { getUniqueStates, getUniqueMajors } from '@/lib/queries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -22,22 +22,68 @@ interface TransferPathwaysTableProps {
   initialFilters?: TransferPathwayFilters
 }
 
+// Enhanced error handling interface
+interface ApiError {
+  message: string
+  status?: number
+  retryable?: boolean
+}
+
 export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferPathwaysTableProps) {
+  console.log('TransferPathwaysTable INITIALIZATION:', {
+    userId,
+    initialFilters,
+    initialFiltersKeys: Object.keys(initialFilters),
+    initialFiltersValues: Object.values(initialFilters)
+  })
+
   const [pathways, setPathways] = useState<TransferPathway[]>([])
   const [filteredPathways, setFilteredPathways] = useState<TransferPathway[]>([])
   const [selectedPathways, setSelectedPathways] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filters, setFilters] = useState<TransferPathwayFilters>(initialFilters)
+  // Initialize filters with safe defaults to prevent pre-populated filtering
+  const [filters, setFilters] = useState<TransferPathwayFilters>({
+    state: 'all',
+    major: 'all',
+    timeline: 'all',
+    guaranteedTransfer: undefined,
+    minGPA: undefined,
+    ...initialFilters
+  })
   const [states, setStates] = useState<string[]>([])
   const [majors, setMajors] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [selectedPathwayDetails, setSelectedPathwayDetails] = useState<TransferPathway | null>(null)
 
+  // Reset filters on mount to prevent over-filtering
+  useEffect(() => {
+    console.log('COMPONENT MOUNT: Resetting filters to ensure clean state')
+    setFilters({}) // Reset to empty object to prevent any unintentional filtering
+  }, [])
+
   // Load data on component mount
   useEffect(() => {
     loadData()
   }, [userId])
+
+  // Auto-retry mechanism for network errors
+  useEffect(() => {
+    if (error && retryCount > 0 && retryCount < 3) {
+      const retryDelay = Math.pow(2, retryCount) * 1000 // Exponential backoff: 2s, 4s, 8s
+      console.log(`Auto-retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`)
+
+      const retryTimer = setTimeout(() => {
+        console.log('Auto-retrying data fetch...')
+        loadData()
+      }, retryDelay)
+
+      return () => clearTimeout(retryTimer)
+    }
+  }, [error, retryCount])
 
   // Load filter options
   useEffect(() => {
@@ -49,17 +95,136 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
     applyFiltersAndSearch()
   }, [pathways, searchTerm, filters])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
-      const data = await fetchTransferPathways(filters)
-      setPathways(data)
+      // Log filters before building query string
+      console.log('API FILTERS INSPECTION:', {
+        filters,
+        filtersKeys: Object.keys(filters),
+        filtersValues: Object.values(filters),
+        hasState: !!filters.state,
+        hasMajor: !!filters.major,
+        hasGuaranteedTransfer: filters.guaranteedTransfer !== undefined,
+        hasMinGPA: !!filters.minGPA,
+        hasTimeline: !!filters.timeline
+      })
+
+      // Build query parameters - only append if filter has a meaningful value
+      const params = new URLSearchParams()
+      if (filters.state && filters.state !== 'all') params.append('state', filters.state)
+      if (filters.major && filters.major !== 'all') params.append('major', filters.major)
+      if (filters.guaranteedTransfer !== undefined && filters.guaranteedTransfer !== 'all') params.append('guaranteedTransfer', filters.guaranteedTransfer.toString())
+      if (filters.minGPA && filters.minGPA > 0) params.append('minGPA', filters.minGPA.toString())
+      if (filters.timeline && filters.timeline !== 'all') params.append('timeline', filters.timeline)
+      params.append('limit', '1000') // Get all pathways (728 total in database)
+
+      console.log('TransferPathwaysTable: Fetching from API with filters:', Object.fromEntries(params))
+      console.log('TransferPathwaysTable: Final query string:', params.toString())
+
+      // Fetch from our dedicated API endpoint
+      const response = await fetch(`/api/pathways?${params.toString()}`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch pathways')
+      }
+
+      // Log raw API response for diagnostics
+      console.log('RAW API RESPONSE:', {
+        success: result.success,
+        count: result.count,
+        dataLength: result.data.length,
+        page: result.page,
+        limit: result.limit,
+        filters: result.filters,
+        firstPathway: result.data[0],
+        lastPathway: result.data[result.data.length - 1]
+      })
+
+      // Validate API response data
+      if (!result.data || !Array.isArray(result.data)) {
+        throw new Error('Invalid API response: data is not an array')
+      }
+
+      if (result.data.length === 0) {
+        console.warn('API returned empty data array')
+        toast.warning('No pathways found', {
+          description: 'Try adjusting your filters or check back later.',
+          duration: 3000
+        })
+      }
+
+      console.log('TransferPathwaysTable: Successfully loaded', result.count, 'pathways from API')
+      console.log('TransferPathwaysTable: API response data length:', result.data.length)
+      console.log('TransferPathwaysTable: First 5 majors:', result.data.slice(0, 5).map((p: any) => p.major))
+
+      // Validate each pathway has required fields
+      const validPathways = result.data.filter((pathway: any) => {
+        const isValid = pathway.id && pathway.major && pathway.targetUniversity
+        if (!isValid) {
+          console.warn('Invalid pathway found:', pathway)
+        }
+        return isValid
+      })
+
+      if (validPathways.length !== result.data.length) {
+        console.warn(`Filtered out ${result.data.length - validPathways.length} invalid pathways`)
+      }
+
+      setPathways(validPathways)
+      setFilteredPathways(validPathways) // Sync filteredPathways with pathways
+      setError(null) // Clear any previous errors
+      setRetryCount(0) // Reset retry count on success
+      setLastFetchTime(new Date()) // Track successful fetch time
     } catch (error) {
       console.error('Error loading transfer pathways:', error)
+
+      // Enhanced error handling
+      let errorMessage = 'Failed to load pathways'
+      let retryable = true
+
+      if (error instanceof Error) {
+        errorMessage = error.message
+
+        // Check for specific error types
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection.'
+          retryable = true
+        } else if (error.message.includes('HTTP error! status: 500')) {
+          errorMessage = 'Server error: The server encountered an issue. Please try again later.'
+          retryable = true
+        } else if (error.message.includes('HTTP error! status: 404')) {
+          errorMessage = 'API endpoint not found. Please contact support.'
+          retryable = false
+        }
+      }
+
+      console.error('Enhanced error details:', {
+        originalError: error,
+        errorMessage,
+        retryable,
+        timestamp: new Date().toISOString()
+      })
+
+      setError(errorMessage)
+      setPathways([]) // Set empty array on error
+      setFilteredPathways([]) // Also clear filteredPathways on error
+      setRetryCount(prev => prev + 1)
+
+      // Show user-friendly error toast
+      toast.error(errorMessage, {
+        description: retryable ? 'Click "Try Again" to retry the request.' : 'Please contact support if this issue persists.',
+        duration: 5000
+      })
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   const loadFilterOptions = async () => {
     try {
@@ -74,39 +239,80 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
     }
   }
 
+  // Load data on component mount
+  useEffect(() => {
+    loadData()
+  }, [])
+
   const applyFiltersAndSearch = () => {
+    console.log('FILTERING DEBUG:', {
+      pathwaysLength: pathways.length,
+      searchTerm,
+      filters,
+      timestamp: new Date().toISOString()
+    })
+
     let filtered = [...pathways]
+    console.log('FILTERING START:', { originalPathways: pathways.length, startingFiltered: filtered.length })
 
     // Apply search term
-    if (searchTerm) {
+    if (searchTerm && searchTerm.trim()) {
+      const beforeSearch = filtered.length
       filtered = filtered.filter(pathway =>
         pathway.targetUniversity.toLowerCase().includes(searchTerm.toLowerCase()) ||
         pathway.major.toLowerCase().includes(searchTerm.toLowerCase()) ||
         pathway.state.toLowerCase().includes(searchTerm.toLowerCase())
       )
+      console.log('Search filter applied:', { beforeSearch, afterSearch: filtered.length, searchTerm })
     }
 
-    // Apply filters
+    // Apply filters - only if values are meaningful
     if (filters.state && filters.state !== 'all') {
+      const beforeState = filtered.length
       filtered = filtered.filter(pathway => pathway.state === filters.state)
+      console.log('State filter applied:', { beforeState, afterState: filtered.length, state: filters.state })
     }
+
     if (filters.major && filters.major !== 'all') {
+      const beforeMajor = filtered.length
       filtered = filtered.filter(pathway =>
         pathway.major.toLowerCase().includes(filters.major!.toLowerCase())
       )
+      console.log('Major filter applied:', { beforeMajor, afterMajor: filtered.length, major: filters.major })
     }
+
     if (filters.guaranteedTransfer !== undefined && filters.guaranteedTransfer !== 'all' && typeof filters.guaranteedTransfer === 'boolean') {
+      const beforeGuaranteed = filtered.length
       const guaranteedTransfer = filters.guaranteedTransfer as boolean
       filtered = filtered.filter(pathway => pathway.guaranteedTransfer === guaranteedTransfer)
+      console.log('Guaranteed transfer filter applied:', { beforeGuaranteed, afterGuaranteed: filtered.length, guaranteedTransfer })
     }
-    if (filters.minGPA) {
+
+    if (filters.minGPA !== undefined && filters.minGPA > 0) {
+      const beforeGPA = filtered.length
       filtered = filtered.filter(pathway =>
         pathway.minGPA && pathway.minGPA >= filters.minGPA!
       )
+      console.log('GPA filter applied:', { beforeGPA, afterGPA: filtered.length, minGPA: filters.minGPA })
     }
+
     if (filters.timeline && filters.timeline !== 'all') {
+      const beforeTimeline = filtered.length
       filtered = filtered.filter(pathway => pathway.timeline === filters.timeline)
+      console.log('Timeline filter applied:', { beforeTimeline, afterTimeline: filtered.length, timeline: filters.timeline })
     }
+
+    console.log('FILTERING RESULT:', {
+      originalPathways: pathways.length,
+      finalFiltered: filtered.length,
+      filtersApplied: Object.keys(filters).filter(key => {
+        const value = filters[key as keyof typeof filters]
+        if (key === 'guaranteedTransfer' || key === 'minGPA') {
+          return value !== undefined && value !== 'all'
+        }
+        return value !== undefined && value !== 'all'
+      })
+    })
 
     setFilteredPathways(filtered)
   }
@@ -119,7 +325,13 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
   }
 
   const clearFilters = () => {
-    setFilters({})
+    setFilters({
+      state: 'all',
+      major: 'all',
+      timeline: 'all',
+      guaranteedTransfer: undefined,
+      minGPA: undefined
+    })
     setSearchTerm('')
   }
 
@@ -186,6 +398,99 @@ export function TransferPathwaysTable({ userId, initialFilters = {} }: TransferP
       </Card>
     )
   }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <XCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 font-medium mb-2">Failed to load transfer pathways</p>
+            <p className="text-muted-foreground text-sm mb-4">{error}</p>
+
+            {/* Show retry information */}
+            {retryCount > 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-yellow-800 text-sm">
+                  Retry attempt {retryCount} of 3
+                  {retryCount < 3 && (
+                    <span className="block mt-1">
+                      Auto-retrying in a few seconds...
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Show last fetch time if available */}
+            {lastFetchTime && (
+              <p className="text-muted-foreground text-xs mb-4">
+                Last successful fetch: {lastFetchTime.toLocaleTimeString()}
+              </p>
+            )}
+
+            <div className="flex gap-2 justify-center">
+              <Button onClick={loadData} variant="outline" disabled={loading}>
+                {loading ? 'Retrying...' : 'Try Again'}
+              </Button>
+              {retryCount >= 3 && (
+                <Button
+                  onClick={() => {
+                    setRetryCount(0)
+                    setError(null)
+                    loadData()
+                  }}
+                  variant="default"
+                >
+                  Reset & Retry
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // DEBUG: Log pathways data in render
+  console.log('TransferPathwaysTable RENDER:', {
+    pathwaysLength: pathways.length,
+    filteredPathwaysLength: filteredPathways.length,
+    firstFewMajors: pathways.slice(0, 5).map(p => p.major),
+    loading,
+    error,
+    pathwaysArray: pathways,
+    pathwaysType: typeof pathways,
+    isArray: Array.isArray(pathways)
+  })
+
+  // Additional detailed logging
+  console.log('PATHWAYS DETAILED:', {
+    length: pathways.length,
+    firstPathway: pathways[0],
+    lastPathway: pathways[pathways.length - 1],
+    first10Majors: pathways.map(p => p.major).slice(0, 10),
+    uniqueMajors: Array.from(new Set(pathways.map(p => p.major))).slice(0, 10)
+  })
+
+  // VALIDATION: Confirm both arrays have 728 pathways
+  console.log('PATHWAYS VALIDATION:', {
+    pathwaysLength: pathways.length,
+    filteredPathwaysLength: filteredPathways.length,
+    expectedLength: 728,
+    pathwaysMatch: pathways.length === 728,
+    filteredMatch: filteredPathways.length === 728,
+    bothMatch: pathways.length === 728 && filteredPathways.length === 728
+  })
+
+  // RENDER ARRAY CONFIRMATION: Log what will be rendered
+  console.log('RENDER ARRAY CONFIRMATION:', {
+    renderingArray: 'filteredPathways',
+    filteredPathwaysLength: filteredPathways.length,
+    pathwaysLength: pathways.length,
+    willRenderAll: filteredPathways.length === pathways.length,
+    renderCount: filteredPathways.length
+  })
 
   return (
     <div className="space-y-6">

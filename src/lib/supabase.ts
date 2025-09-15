@@ -1,21 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_key'
-
-// Only create the client if we have valid credentials
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Check if Supabase is properly configured
-export const isSupabaseConfigured = () => {
-    const isConfigured = supabaseUrl !== 'https://placeholder.supabase.co' &&
-        supabaseAnonKey !== 'placeholder_key' &&
-        supabaseUrl !== 'https://your-project-id.supabase.co' &&
-        supabaseAnonKey !== 'your_supabase_anon_key_here'
-
-    console.log('Supabase configured:', isConfigured, 'URL:', supabaseUrl)
-    return isConfigured
-}
+// Re-export from the new supabase-client.ts for backward compatibility
+export { supabase, isSupabaseConfigured, testSupabaseConnection } from './supabase-client'
 
 // Database types
 export interface Database {

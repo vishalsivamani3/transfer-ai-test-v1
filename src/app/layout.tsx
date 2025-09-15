@@ -26,7 +26,26 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={inter.className}>
-                <AuthProvider>
+                <AuthProvider fallbackUser={{
+                    id: 'dev-user-123',
+                    email: 'dev@example.com',
+                    aud: 'authenticated',
+                    role: 'authenticated',
+                    email_confirmed_at: new Date().toISOString(),
+                    phone: '',
+                    confirmed_at: new Date().toISOString(),
+                    last_sign_in_at: new Date().toISOString(),
+                    app_metadata: { provider: 'email', providers: ['email'] },
+                    user_metadata: {
+                        firstName: 'Dev',
+                        lastName: 'User',
+                        currentCollege: 'Community College',
+                        academicYear: 'Freshman'
+                    },
+                    identities: [],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                } as any}>
                     {children}
                     <Toaster position="top-right" richColors />
                 </AuthProvider>
