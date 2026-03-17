@@ -46,15 +46,17 @@ export function validateCredits(credits: number): boolean {
 }
 
 export function generateTransferPathways(profile: any) {
-  // Mock transfer pathway generation
   const pathways = []
   const universities = profile.targetUniversities || []
 
   for (const university of universities) {
+    const slug = university.toLowerCase().replace(/\s+/g, '-')
     pathways.push({
-      id: `pathway-${university.toLowerCase().replace(/\s+/g, '-')}`,
+      id: `pathway-${slug}`,
       targetUniversity: university,
+      targetUniversityCode: slug.toUpperCase().substring(0, 6),
       major: profile.intendedMajor || 'Undeclared',
+      majorCode: (profile.intendedMajor || 'UNDECL').toUpperCase().substring(0, 6),
       state: 'California',
       guaranteedTransfer: Math.random() > 0.3,
       requirementsMet: Math.floor(Math.random() * 10) + 5,
@@ -63,7 +65,12 @@ export function generateTransferPathways(profile: any) {
       timeline: profile.preferredTransferTimeline || '2-year',
       acceptanceRate: Math.floor(Math.random() * 30) + 20,
       minGPA: 2.5 + Math.random() * 1.5,
-      applicationDeadline: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString()
+      applicationDeadline: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+      requiredCourses: [],
+      recommendedCourses: [],
+      igetcRequirements: [],
+      tagEligibility: { isEligible: false },
+      specialRequirements: []
     })
   }
 

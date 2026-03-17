@@ -224,7 +224,7 @@ export default function FinancialCostCalculator() {
         const { familySize, parentAGI, parentAssets, studentIncome, studentAssets } = profile
 
         // Check if student qualifies for SAI = 0 (maximum Pell Grant)
-        const povertyLevel = FINANCIAL_DATA.federalPovertyLevels[familySize.toString()] || 30870
+        const povertyLevel = (FINANCIAL_DATA.federalPovertyLevels as Record<string, number>)[familySize.toString()] || 30870
         const povertyThreshold = povertyLevel * 2.5 // 250% of poverty level
 
         if (parentAGI <= povertyThreshold) {

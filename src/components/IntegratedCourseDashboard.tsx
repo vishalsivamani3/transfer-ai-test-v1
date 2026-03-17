@@ -50,7 +50,7 @@ interface IntegratedCourseDashboardProps {
 export default function IntegratedCourseDashboard({ studentInstitution, userId }: IntegratedCourseDashboardProps) {
     const { state, actions } = useTransferData()
     const [searchQuery, setSearchQuery] = useState('')
-    const [sortBy, setSortBy] = useState<'courseCode' | 'courseTitle' | 'department' | 'units' | 'transferability'>('courseCode')
+    const [sortBy, setSortBy] = useState<'courseCode' | 'courseTitle' | 'department' | 'units' | 'transferability' | 'professorRating' | 'professorDifficulty' | 'availableSeats'>('courseCode')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
     const [activeTab, setActiveTab] = useState('browse')
 
