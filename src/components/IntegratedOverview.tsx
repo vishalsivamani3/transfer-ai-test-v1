@@ -317,7 +317,7 @@ export default function IntegratedOverview({ user, dashboardData, onNavigate }: 
                                 <div>
                                     <h4 className="font-medium text-sm mb-2">Areas of Interest</h4>
                                     <div className="flex flex-wrap gap-1">
-                                        {interests.map((interest, index) => (
+                                        {interests.map((interest: string, index: number) => (
                                             <Badge key={index} variant="secondary" className="text-xs">
                                                 {interest}
                                             </Badge>

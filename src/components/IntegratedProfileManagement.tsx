@@ -292,7 +292,7 @@ export default function IntegratedProfileManagement({ user, onProfileUpdate }: I
                                         </Button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        {profileData.targetUniversities.map((university, index) => (
+                                        {profileData.targetUniversities.map((university: string, index: number) => (
                                             <Badge key={index} variant="secondary" className="flex items-center gap-1">
                                                 <GraduationCap className="h-3 w-3" />
                                                 {university}
@@ -352,7 +352,7 @@ export default function IntegratedProfileManagement({ user, onProfileUpdate }: I
                                 </Button>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                {profileData.interests.map((interest, index) => (
+                                {profileData.interests.map((interest: string, index: number) => (
                                     <Badge key={index} variant="outline" className="flex items-center gap-1">
                                         {interest}
                                         {isEditing && (
